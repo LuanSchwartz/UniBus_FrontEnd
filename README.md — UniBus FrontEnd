@@ -1,0 +1,96 @@
+UniBus FrontEnd
+Pré-requisitos
+
+Verifique se o Node.js e o npm estão instalados:
+
+node --version
+npm --version
+
+1. Instalar o Yarn
+npm install --global yarn
+
+
+Verifique:
+
+yarn --version
+
+
+Caso o Yarn não seja reconhecido:
+
+$env:Path += ";$(npm config get prefix)"
+
+
+Depois:
+
+yarn --version
+
+
+Se necessário, feche e abra o PowerShell novamente.
+
+2. Instalar dependências do projeto
+
+Entre na pasta do projeto:
+
+cd C:\caminho\para\UniBus_FrontEnd
+
+
+Instale as dependências:
+
+yarn install
+
+3. Instalar o Design System
+yarn add @nexpy/design-system
+
+
+A versão instalada atualmente é:
+
+@nexpy/design-system@3.1.8
+
+4. Utilizar o Design System
+
+Importe os componentes diretamente do pacote:
+
+import { NomeDoComponente } from '@nexpy/design-system';
+
+
+Exemplo:
+
+import { Button } from '@nexpy/design-system';
+
+export function Home() {
+  return (
+    <Button>
+      Continuar
+    </Button>
+  );
+}
+
+
+Consulte a documentação do Design System para conhecer os componentes, propriedades e variantes disponíveis.
+
+5. Executar o projeto
+
+Verifique os scripts disponíveis no package.json e execute, por exemplo:
+
+yarn dev
+
+
+ou:
+
+yarn start
+
+Comandos principais
+# Instalar Yarn
+npm install --global yarn
+
+# Instalar dependências
+yarn install
+
+# Instalar Design System
+yarn add @nexpy/design-system
+
+# Executar projeto
+yarn dev
+
+
+Evite misturar npm install e yarn no mesmo projeto. Se o projeto possui yarn.lock, prefira utilizar Yarn.
