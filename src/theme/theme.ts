@@ -2,9 +2,9 @@ import { getOverrideSystemColors } from '@nexpy/design-system'
 
 const customDesignSystemColors = getOverrideSystemColors({
   systemPrimary: '#2957a4',
-  systemDanger: '#D9534F',
-  systemWarning: '#F0AD4E',
-  systemSafe: '#6BB85C',
+  systemDanger: '#DC2626',
+  systemWarning: '#d97706',
+  systemSafe: '#047857',
 
   systemFocus: '#3878e0',
   systemDisabled: '#e5e5e5',
@@ -36,33 +36,24 @@ export const customTheme = {
 
     grey100: '#f2f2f2',
     grey150: '#e2e2e2',
-    grey200: '#d0d0d0',
+    grey200: '#F8FAFC',
     grey300: '#a7a9ac',
     grey500: '#626262',
 
-    greenLight: '#A8D49F',
+    prussianBlue: '#132A4D',
+    blueSlate: '#475569',
+    paleSlate: '#CBD5E1',
 
-    unavailable: '#64616B',
-    orange: '#F0AD4E',
-    orange_darken: '#d48e2c',
-    green: '#6BB85C',
-    lightRed: '#FFE6E6',
+    whiteSmoke: '#F5F5F51A',
 
-    primaryLight: '#3f78d3',
-    oldSilver: '#848484',
-    oldSilverDarken: '#808080',
-    aliceBlue: '#E5EAF4',
-    denim: '#335FA9',
+    ochre: '#d977062a',
+    ivoryMist: '#FFFBEB',
+    turfeGreen: '#ECFDF5',
+    snow: '#FDF2F2',
+    snow2: '#ffe0e0',
+    aliceBlue: '#F0F6FF',
+    aliceBlue2: '#dceaff',
 
-    scrollPrimary: '#2b2d79',
-    scrollSecondary: '#224b92',
-    honeydew: '#eafaf1',
-    lavanderBlush: '#ffefed',
-    almondSilk: '#f1ceca',
-    PearlBeige: '#ffedc6',
-
-    charcoal: '#53595f',
-
-    twilightIndigo: '#32326d',
+    royalAzure: '#2F5FD8',
   },
 }
