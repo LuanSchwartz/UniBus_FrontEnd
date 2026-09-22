@@ -1,4 +1,4 @@
-import { Flex } from "@nexpy/design-system"
+import { Flex } from '@nexpy/design-system'
 
 const Blog = () => {
   return (
