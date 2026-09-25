@@ -6,7 +6,7 @@ import iconNoticeWarnig from '../../../icons/iconnoticewarning.svg'
 import iconNoticeDanger from '../../../icons/iconnoticedanger.svg'
 import iconArrowRight from '../../../icons/iconarrow.svg'
 
-type NoticesStatus = 'safe' | 'warning' | 'danger'
+export type NoticesStatus = 'safe' | 'warning' | 'danger'
 
 const statusConfiguration = {
   safe: {
@@ -29,10 +29,18 @@ const statusConfiguration = {
 export type NoticesCardProps = {
   status: NoticesStatus
   mensageTitle?: string
+  date: string
+  hours: string
   mensageDescription?: string
 }
 
-const NoticesCard = ({ status, mensageTitle, mensageDescription }: NoticesCardProps) => {
+const NoticesCard = ({
+  status,
+  mensageTitle,
+  date,
+  hours,
+  mensageDescription,
+}: NoticesCardProps) => {
   const visual = statusConfiguration[status]
 
   return (
@@ -58,8 +66,13 @@ const NoticesCard = ({ status, mensageTitle, mensageDescription }: NoticesCardPr
       >
         <Image src={visual.icon} alt='' width={16} height={16} />
       </Flex>
-      <Flex direction='column'>
-        <Text fontWeight='bold'>{mensageTitle}</Text>
+      <Flex direction='column' gap='0.5rem'>
+        <Flex direction='column'>
+          <Text fontWeight='bold'>{mensageTitle}</Text>
+          <Text color='coolSteal'>
+            {date} • {hours}
+          </Text>
+        </Flex>
         <Text color='blueSlate'>{mensageDescription}</Text>
       </Flex>
       <Image src={iconArrowRight} alt='' width={24} height={24} />
