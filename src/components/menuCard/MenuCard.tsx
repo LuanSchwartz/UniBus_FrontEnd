@@ -74,6 +74,10 @@ const MenuCard = () => {
               flex: 1,
               textDecoration: 'none',
             }}
+            onClick={event => {
+              event.preventDefault()
+              router.push(item.href)
+            }}
           >
             <Flex direction='column' alignItems='center' gap='0.5rem'>
               <Image

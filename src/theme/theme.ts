@@ -40,6 +40,9 @@ export const customTheme = {
     grey300: '#a7a9ac',
     grey500: '#626262',
 
+    slateGray: '#64748B',
+    coolSteal: '#94A3B8',
+
     prussianBlue: '#132A4D',
     blueSlate: '#475569',
     paleSlate: '#CBD5E1',

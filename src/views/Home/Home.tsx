@@ -1,6 +1,7 @@
-import TripsCard from '../../components/tripsCard/TripsCard'
 import { A, Box, Button, Flex, Text } from '@nexpy/design-system'
+
 import { useState } from 'react'
+import { useRouter } from 'next/router'
 
 import Image from 'next/image'
 import iconbell from '../../../icons/iconbell.svg'
@@ -12,7 +13,9 @@ import iconConfirmed from '../../../icons/iconconfirmed.svg'
 import iconCancel from '../../../icons/iconcancel.svg'
 import iconAlert from '../../../icons/iconalert.svg'
 import iconAlertConfirmed from '../../../icons/iconalertconfirmed.svg'
+
 import NoticesCard from '@/components/noticesCard/NoticesCard'
+import TripsCard from '../../components/tripsCard/TripsCard'
 
 const vagasOcupadas = 12
 const totalVagas = 42
@@ -21,6 +24,8 @@ const porcentagem = totalVagas > 0 ? Math.min((vagasOcupadas / totalVagas) * 100
 
 const Home = () => {
   const [isConfirmed, setIsConfirmed] = useState(false)
+
+  const router = useRouter()
 
   return (
     <Flex direction='column' bg='grey200' minHeight='100vh' pb='8rem'>
@@ -189,7 +194,15 @@ const Home = () => {
           <Text variant='subheading' fontWeight='bold'>
             Próximas viagens
           </Text>
-          <A fontWeight='bold' color='royalAzure'>
+          <A
+            href='/viagens'
+            fontWeight='bold'
+            color='royalAzure'
+            onClick={event => {
+              event.preventDefault()
+              router.push('/avisos')
+            }}
+          >
             Ver todas
           </A>
         </Flex>
@@ -226,7 +239,15 @@ const Home = () => {
           <Text variant='subheading' fontWeight='bold'>
             Avisos Recentes
           </Text>
-          <A fontWeight='bold' color='royalAzure'>
+          <A
+            href='/avisos'
+            fontWeight='bold'
+            color='royalAzure'
+            onClick={event => {
+              event.preventDefault()
+              router.push('/avisos')
+            }}
+          >
             Ver todas
           </A>
         </Flex>
@@ -235,16 +256,22 @@ const Home = () => {
           <NoticesCard
             status='safe'
             mensageTitle='Viagem Segura'
+            date='20/08/2025'
+            hours='09:15'
             mensageDescription='A viagem de hoje está ocorrendo normalmente.'
           />
           <NoticesCard
             status='warning'
             mensageTitle='Atenção'
+            date='20/08/2025'
+            hours='09:15'
             mensageDescription='A viagem de hoje pode sofrer atrasos devido a obras na estrada.'
           />
           <NoticesCard
             status='danger'
             mensageTitle='Viagem Cancelada'
+            date='20/08/2025'
+            hours='09:15'
             mensageDescription='A viagem de hoje foi cancelada devido a condições climáticas adversas.'
           />
         </Flex>
