@@ -75,7 +75,9 @@ const NoticesCard = ({
         </Flex>
         <Text color='blueSlate'>{mensageDescription}</Text>
       </Flex>
+      <Flex alignSelf='center' ml='auto'>
       <Image src={iconArrowRight} alt='' width={24} height={24} />
+      </Flex>
     </Flex>
   )
 }
