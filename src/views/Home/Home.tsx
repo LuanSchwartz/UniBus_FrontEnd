@@ -40,16 +40,24 @@ const Home = () => {
             </Text>
           </Flex>
 
-          <Flex
-            bg='whiteSmoke'
-            w='4rem'
-            h='4rem'
-            alignItems='center'
-            justifyContent='center'
-            borderRadius='50%'
+          <A
+            href='/avisos'
+            onClick={event => {
+              event.preventDefault()
+              router.push('/avisos')
+            }}
           >
+              <Flex
+                bg='whiteSmoke'
+                w='4rem'
+                h='4rem'
+                alignItems='center'
+                justifyContent='center'
+                borderRadius='50%'
+              >
             <Image src={iconbell} alt='Usuário' width={18} height={18} />
           </Flex>
+          </A>
         </Flex>
         <Text fontSize='1.4rem' color='systemWhite' fontWeight='bold' pb='2rem'>
           Próxima viagem
@@ -200,7 +208,7 @@ const Home = () => {
             color='royalAzure'
             onClick={event => {
               event.preventDefault()
-              router.push('/avisos')
+              router.push('/viagens')
             }}
           >
             Ver todas
