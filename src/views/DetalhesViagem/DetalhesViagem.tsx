@@ -7,6 +7,8 @@ import iconCalendar from '../../../icons/iconcalendar.svg'
 import iconClock from '../../../icons/iconclock.svg'
 import iconConfirmed from '../../../icons/iconconfirmed.svg'
 import iconCancel from '../../../icons/iconcancel.svg'
+import iconbank from '../../../icons/iconbank.svg'
+import iconpin from '../../../icons/iconpin.svg'
 
 type TripDetails = {
   id: string
@@ -147,9 +149,7 @@ const DetalhesViagem = () => {
             </Flex>
 
             <Flex gap='1.2rem' alignItems='flex-start'>
-              <Text color='blueSlate' fontSize='2rem' lineHeight='1'>
-                ⌖
-              </Text>
+              <Image src={iconpin} alt='' width={18} height={18} />
               <Text color='blueSlate' lineHeight='1.5'>
                 Saída: {trip.boarding}
                 <br />
@@ -158,9 +158,7 @@ const DetalhesViagem = () => {
             </Flex>
 
             <Flex gap='1.2rem' alignItems='center'>
-              <Text color='blueSlate' fontSize='1.8rem'>
-                ♿
-              </Text>
+              <Image src={iconbank} alt='Banco' width={18} height={18} />
               <Text color='blueSlate'>
                 {trip.occupiedSeats} / {trip.totalSeats} vagas ocupadas
               </Text>
