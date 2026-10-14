@@ -159,7 +159,7 @@ const Home = () => {
               width={24}
               height={24}
             />
-            {isConfirmed ? 'Cancelar confirmada' : 'Confirmar presença'}
+            {isConfirmed ? 'Cancelar presença' : 'Confirmar presença'}
           </Button>
 
           <Flex

@@ -1,12 +1,13 @@
 import { Flex, Text } from '@nexpy/design-system'
+import { useRouter } from 'next/router'
 import Image from 'next/image'
 
 import iconArrowRight from '../../../icons/iconarrow.svg'
 
-
 type TripStatus = 'confirmed' | 'pending' | 'canceled'
 
 type MyTripsCardProps = {
+    id: number
     status: TripStatus
     origin: string
     destination: string
@@ -42,9 +43,10 @@ const MyTripsCard = ({
     time,
     seats,
     tag,
+    id
 }: MyTripsCardProps) => {
     const visual = statusConfig[status]
-
+    const router = useRouter()
     return (
         <Flex
             bg='systemWhite'
@@ -96,8 +98,16 @@ const MyTripsCard = ({
                 </Text>
             </Flex>
 
-            <Flex alignSelf='center'>
-                <Image src={iconArrowRight} alt='' width={24} height={24} />
+            <Flex 
+              alignSelf='center' 
+              cursor='pointer' 
+              onClick={() => router.push(`/detalhes_viagem?id=${id}`)}
+            >
+                <Image 
+                  src={iconArrowRight}
+                  alt='Ver detalhes da viagem' 
+                  width={24} 
+                  height={24} />
             </Flex>
         </Flex>
     )
