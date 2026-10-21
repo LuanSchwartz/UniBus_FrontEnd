@@ -17,15 +17,23 @@ import iconAlertConfirmed from '../../../icons/iconalertconfirmed.svg'
 import NoticesCard from '@/components/noticesCard/NoticesCard'
 import TripsCard from '../../components/tripsCard/TripsCard'
 
-const vagasOcupadas = 12
 const totalVagas = 42
-
-const porcentagem = totalVagas > 0 ? Math.min((vagasOcupadas / totalVagas) * 100, 100) : 0
 
 const Home = () => {
   const [isConfirmed, setIsConfirmed] = useState(false)
+  const [vagasOcupadas, setVagasOcupadas] = useState(12)
 
   const router = useRouter()
+  const porcentagem = totalVagas > 0 ? Math.min((vagasOcupadas / totalVagas) * 100, 100) : 0
+
+  const handleAttendance = () => {
+    setVagasOcupadas(currentSeats => {
+      if (isConfirmed) return Math.max(currentSeats - 1, 0)
+
+      return Math.min(currentSeats + 1, totalVagas)
+    })
+    setIsConfirmed(value => !value)
+  }
 
   return (
     <Flex direction='column' bg='grey200' minHeight='100vh' pb='8rem'>
@@ -141,7 +149,7 @@ const Home = () => {
 
         <Flex direction='column' mt='3rem' alignItems='center' gap='1.5rem'>
           <Button
-            onClick={() => setIsConfirmed(value => !value)}
+            onClick={handleAttendance}
             size='auto'
             bg={isConfirmed ? 'systemDanger' : 'royalAzure'}
             minHeight='5.5rem'
@@ -159,7 +167,7 @@ const Home = () => {
               width={24}
               height={24}
             />
-            {isConfirmed ? 'Cancelar confirmada' : 'Confirmar presença'}
+            {isConfirmed ? 'Cancelar presença' : 'Confirmar presença'}
           </Button>
 
           <Flex

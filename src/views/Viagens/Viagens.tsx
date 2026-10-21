@@ -128,6 +128,7 @@ const Viagens = () => {
       <Flex direction='column' gap='1rem' p='2rem'>
         {viagensFiltradas.map(viagem => (
             <MyTripsCard
+            id={viagem.id}
             key={viagem.id}
             status={viagem.status}
             origin={viagem.origin}
@@ -138,7 +139,7 @@ const Viagens = () => {
             tag={viagem.tag}
             />
         ))}
-
+        
         {viagensFiltradas.length === 0 && (
           <Text color='blueSlate' textAlign='center' mt='2rem'>
             Nenhuma viagem encontrada.
