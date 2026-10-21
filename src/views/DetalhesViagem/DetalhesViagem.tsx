@@ -89,9 +89,19 @@ const DetalhesViagem = () => {
   const tripId = typeof router.query.id === 'string' ? router.query.id : ''
   const trip = trips.find(item => item.id === tripId) ?? trips[0]
   const [isConfirmed, setIsConfirmed] = useState(trip.status === 'confirmed')
+  const [occupiedSeats, setOccupiedSeats] = useState(trip.occupiedSeats)
   const status = isConfirmed ? 'confirmed' : trip.status === 'canceled' ? 'canceled' : 'pending'
   const visual = statusConfig[status]
-  const occupancy = Math.min((trip.occupiedSeats / trip.totalSeats) * 100, 100)
+  const occupancy = Math.min((occupiedSeats / trip.totalSeats) * 100, 100)
+
+  const handleAttendance = () => {
+    setOccupiedSeats(currentSeats => {
+      if (isConfirmed) return Math.max(currentSeats - 1, 0)
+
+      return Math.min(currentSeats + 1, trip.totalSeats)
+    })
+    setIsConfirmed(value => !value)
+  }
 
   return (
     <Flex direction='column' bg='systemWhite' minHeight='100vh' pb='18rem'>
@@ -160,7 +170,7 @@ const DetalhesViagem = () => {
             <Flex gap='1.2rem' alignItems='center'>
               <Image src={iconbank} alt='Banco' width={18} height={18} />
               <Text color='blueSlate'>
-                {trip.occupiedSeats} / {trip.totalSeats} vagas ocupadas
+                {occupiedSeats} / {trip.totalSeats} vagas ocupadas
               </Text>
             </Flex>
 
@@ -171,11 +181,17 @@ const DetalhesViagem = () => {
               borderRadius='1rem'
               overflow='hidden'
               role='progressbar'
-              aria-valuenow={trip.occupiedSeats}
+              aria-valuenow={occupiedSeats}
               aria-valuemin={0}
               aria-valuemax={trip.totalSeats}
             >
-              <Box w={`${occupancy}%`} h='100%' bg='royalAzure' borderRadius='1rem' />
+              <Box
+                w={`${occupancy}%`}
+                h='100%'
+                bg='royalAzure'
+                borderRadius='1rem'
+                transition='width 0.3s ease'
+              />
             </Box>
           </Flex>
         </Flex>
@@ -215,16 +231,20 @@ const DetalhesViagem = () => {
 
       <Flex bg='systemWhite' bottom='8rem' left={0} p='2rem' position='fixed' right={0}>
         <Button
-          onClick={() => setIsConfirmed(value => !value)}
+          onClick={handleAttendance}
           size='auto'
           bg={isConfirmed ? 'systemDanger' : 'royalAzure'}
           borderRadius='1.6rem'
           color='systemWhite'
           flex={1}
           minHeight='5.2rem'
+          p='1.5rem 2rem'
+          gap='1rem'
+          fontSize='1.8rem'
+          fontWeight='bold'
           textTransform='none'
         >
-          <Image src={isConfirmed ? iconCancel : iconConfirmed} alt='' width={18} height={18} />
+          <Image src={isConfirmed ? iconCancel : iconConfirmed} alt='' width={24} height={24} />
           {isConfirmed ? 'Cancelar presença' : 'Confirmar presença'}
         </Button>
       </Flex>
