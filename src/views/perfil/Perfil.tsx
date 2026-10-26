@@ -1,5 +1,6 @@
 import { Flex, Text } from '@nexpy/design-system'
 import Image from 'next/image'
+import { useRouter } from 'next/router'
 import type { ReactNode } from 'react'
 
 import iconArrowRight from '../../../icons/iconarrow.svg'
@@ -19,6 +20,7 @@ type ProfileOption = {
   icon: ReactNode
   iconBackground: string
   danger?: boolean
+  href?: string
 }
 
 const profileOptions: ProfileOption[] = [
@@ -27,23 +29,40 @@ const profileOptions: ProfileOption[] = [
     description: 'Visualize e edite suas informações pessoais',
     icon: <Image src={iconPerson} alt='Ícone de usuário' width={16} height={16} />,
     iconBackground: '#E7F0FF',
+    href: '/meus_dados',
   },
   {
     title: 'Notificações',
     description: 'Configure seus alertas e lembretes',
-    icon: <Image src={iconeNotificacao} alt='Ícone de notificações' width={16} height={16} />,
+    icon: (
+      <Image src={iconeNotificacao} alt='Ícone de notificações' width={16} height={16} />
+    ),
     iconBackground: '#DDF8EE',
   },
   {
     title: 'Minhas preferências',
     description: 'Defina cidades, horários e rotas favoritas',
-    icon: <Image src={iconeMInhasPreferencias} alt='Ícone de preferências' width={16} height={16} />,
+    icon: (
+      <Image
+        src={iconeMInhasPreferencias}
+        alt='Ícone de preferências'
+        width={16}
+        height={16}
+      />
+    ),
     iconBackground: '#FFF0DE',
   },
   {
     title: 'Métodos de pagamento',
     description: 'Gerencie seus métodos de pagamento',
-    icon: <Image src={iconeMetodosDePagamento} alt='Ícone de métodos de pagamento' width={16} height={16} />,
+    icon: (
+      <Image
+        src={iconeMetodosDePagamento}
+        alt='Ícone de métodos de pagamento'
+        width={16}
+        height={16}
+      />
+    ),
     iconBackground: '#F1E8FF',
   },
   {
@@ -55,13 +74,22 @@ const profileOptions: ProfileOption[] = [
   {
     title: 'Termos de uso',
     description: 'Leia nossos termos e condições',
-    icon: <Image src={iconeTermosDeUso} alt='Ícone de termos de uso' width={16} height={16} />,
+    icon: (
+      <Image src={iconeTermosDeUso} alt='Ícone de termos de uso' width={16} height={16} />
+    ),
     iconBackground: '#EEF2F7',
   },
   {
     title: 'Política de privacidade',
     description: 'Conheça como seus dados são protegidos',
-    icon: <Image src={iconePoliticaDePrivacidade} alt='Ícone de política de privacidade' width={16} height={16} />,
+    icon: (
+      <Image
+        src={iconePoliticaDePrivacidade}
+        alt='Ícone de política de privacidade'
+        width={16}
+        height={16}
+      />
+    ),
     iconBackground: '#EEF2F7',
   },
   {
@@ -74,11 +102,13 @@ const profileOptions: ProfileOption[] = [
 ]
 
 const Perfil = () => {
+  const router = useRouter()
+
   return (
     <Flex direction='column' bg='grey200' minHeight='100vh' pb='8rem'>
       <Flex bg='systemWhite' direction='column' gap='1rem' p='3.5rem 3.5rem 0 3.5rem'>
         <Text fontSize='3.4rem' fontWeight='bold'>
-          Avisos
+          Perfil
         </Text>
 
         <Flex direction='column' alignItems='center' gap='0.6rem' mt='2.5rem'>
@@ -113,6 +143,7 @@ const Perfil = () => {
           <button
             key={option.title}
             type='button'
+            onClick={() => option.href && router.push(option.href)}
             style={{
               alignItems: 'center',
               background: option.danger ? '#FFF5F5' : '#FFFFFF',
@@ -140,7 +171,10 @@ const Perfil = () => {
             </Flex>
 
             <Flex direction='column' flex={1} gap='0.2rem'>
-              <Text color={option.danger ? 'systemDanger' : 'prussianBlue'} fontWeight='bold'>
+              <Text
+                color={option.danger ? 'systemDanger' : 'prussianBlue'}
+                fontWeight='bold'
+              >
                 {option.title}
               </Text>
               <Text color='blueSlate' variant='caption'>
@@ -153,7 +187,11 @@ const Perfil = () => {
               alt=''
               width={18}
               height={18}
-              style={option.danger ? { filter: 'sepia(1) saturate(8) hue-rotate(315deg)' } : undefined}
+              style={
+                option.danger
+                  ? { filter: 'sepia(1) saturate(8) hue-rotate(315deg)' }
+                  : undefined
+              }
             />
           </button>
         ))}
