@@ -63,7 +63,13 @@ const MenuCard = () => {
       boxShadow='0 -4px 20px rgba(15, 23, 42, 0.1)'
     >
       {menuItems.map(item => {
-        const isActive = router.pathname === item.href
+        const isProfileSection =
+          item.href === '/perfil' &&
+          ['/perfil', '/meus_dados', '/notificacoes'].includes(router.pathname)
+        const isTripSection =
+          item.href === '/viagens' &&
+          ['/detalhes_viagem'].includes(router.pathname)
+        const isActive = router.pathname === item.href || isProfileSection || isTripSection
 
         return (
           <A

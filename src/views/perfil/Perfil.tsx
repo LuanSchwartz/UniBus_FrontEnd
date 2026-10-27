@@ -38,6 +38,7 @@ const profileOptions: ProfileOption[] = [
       <Image src={iconeNotificacao} alt='Ícone de notificações' width={16} height={16} />
     ),
     iconBackground: '#DDF8EE',
+    href: '/notificacoes',
   },
   {
     title: 'Minhas preferências',
