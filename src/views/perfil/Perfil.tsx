@@ -52,6 +52,7 @@ const profileOptions: ProfileOption[] = [
       />
     ),
     iconBackground: '#FFF0DE',
+    href: '/minhas_preferencias',
   },
   {
     title: 'Métodos de pagamento',
@@ -65,12 +66,14 @@ const profileOptions: ProfileOption[] = [
       />
     ),
     iconBackground: '#F1E8FF',
+    href: '/metodos_de_pagamento',
   },
   {
     title: 'Ajuda',
     description: 'Dúvidas frequentes e suporte',
     icon: <Image src={iconeDuvida} alt='Ícone de duvidas' width={16} height={16} />,
     iconBackground: '#E6F3FF',
+    href: '/ajuda',
   },
   {
     title: 'Termos de uso',
@@ -79,6 +82,7 @@ const profileOptions: ProfileOption[] = [
       <Image src={iconeTermosDeUso} alt='Ícone de termos de uso' width={16} height={16} />
     ),
     iconBackground: '#EEF2F7',
+    href: '/termos_de_uso',
   },
   {
     title: 'Política de privacidade',
@@ -92,6 +96,7 @@ const profileOptions: ProfileOption[] = [
       />
     ),
     iconBackground: '#EEF2F7',
+    href: '/politica_de_privacidade',
   },
   {
     title: 'Sair da conta',

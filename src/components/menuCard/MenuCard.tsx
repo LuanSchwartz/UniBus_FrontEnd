@@ -65,7 +65,7 @@ const MenuCard = () => {
       {menuItems.map(item => {
         const isProfileSection =
           item.href === '/perfil' &&
-          ['/perfil', '/meus_dados', '/notificacoes'].includes(router.pathname)
+          ['/perfil', '/meus_dados', '/notificacoes', '/minhas_preferencias', '/metodos_de_pagamento', '/ajuda', '/termos_de_uso', '/politica_de_privacidade'].includes(router.pathname)
         const isTripSection =
           item.href === '/viagens' &&
           ['/detalhes_viagem'].includes(router.pathname)
