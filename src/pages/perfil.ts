@@ -1,3 +1,3 @@
-import Perfil from '@/views/perfil'
+import Perfil from '@/views/Perfil'
 
 export default Perfil
