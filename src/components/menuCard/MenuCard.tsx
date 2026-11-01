@@ -9,14 +9,14 @@ import iconTicketActive from '../../../icons/iconticket-active.svg'
 import iconBell from '../../../icons/iconbellm.svg'
 import iconBellActive from '../../../icons/iconbellm-active.svg'
 import iconCard from '../../../icons/iconcard.svg'
-import iconCardActive from '../../../icons/iconcard-active.svg'
+import iconcardactive from '../../../icons/iconcardactive.svg'
 import iconProfile from '../../../icons/iconprofile.svg'
 import iconProfileActive from '../../../icons/iconprofile-active.svg'
 
 const menuItems = [
   {
     label: 'Início',
-    href: '/',
+    href: '/inicio',
     icon: iconHome,
     activeIcon: iconHomeActive,
   },
@@ -36,7 +36,7 @@ const menuItems = [
     label: 'Carteira',
     href: '/carteira',
     icon: iconCard,
-    activeIcon: iconCardActive,
+    activeIcon: iconcardactive,
   },
   {
     label: 'Perfil',
@@ -65,7 +65,7 @@ const MenuCard = () => {
       {menuItems.map(item => {
         const isProfileSection =
           item.href === '/perfil' &&
-          ['/perfil', '/meus_dados', '/notificacoes', '/minhas_preferencias', '/metodos_de_pagamento', '/ajuda', '/termos_de_uso', '/politica_de_privacidade'].includes(router.pathname)
+          ['/perfil', '/meus_dados', '/notificacoes', '/minhas_preferencias', '/metodos_de_pagamento', '/adicionar_cartao', '/ajuda', '/termos_de_uso', '/politica_de_privacidade', '/sair_conta'].includes(router.pathname)
         const isTripSection =
           item.href === '/viagens' &&
           ['/detalhes_viagem'].includes(router.pathname)

@@ -104,6 +104,7 @@ const profileOptions: ProfileOption[] = [
     icon: <Image src={iconeSair} alt='Ícone de sair da conta' width={16} height={16} />,
     iconBackground: '#FEE2E2',
     danger: true,
+    href: '/sair_conta',
   },
 ]
 
