@@ -108,7 +108,7 @@ const Home = () => {
           <Flex direction='column' gap='1rem'>
             <Flex gap='0.5rem' alignItems='center'>
               <Image src={iconcalendar} alt='Calendário' width={18} height={18} />
-              <Text color='blueSlate'>12/06/2024</Text>
+              <Text color='blueSlate'>12/06/2026</Text>
             </Flex>
 
             <Flex gap='0.5rem' alignItems='center'>
@@ -272,21 +272,21 @@ const Home = () => {
           <NoticesCard
             status='safe'
             mensageTitle='Viagem Segura'
-            date='20/08/2025'
+            date='20/08/2026'
             hours='09:15'
             mensageDescription='A viagem de hoje está ocorrendo normalmente.'
           />
           <NoticesCard
             status='warning'
             mensageTitle='Atenção'
-            date='20/08/2025'
+            date='20/08/2026'
             hours='09:15'
             mensageDescription='A viagem de hoje pode sofrer atrasos devido a obras na estrada.'
           />
           <NoticesCard
             status='danger'
             mensageTitle='Viagem Cancelada'
-            date='20/08/2025'
+            date='20/08/2026'
             hours='09:15'
             mensageDescription='A viagem de hoje foi cancelada devido a condições climáticas adversas.'
           />
