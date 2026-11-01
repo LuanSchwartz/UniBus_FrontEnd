@@ -1,3 +1,3 @@
-import Home from '@/views/Home'
+import Login from '@/views/Login'
 
-export default Home
+export default Login
