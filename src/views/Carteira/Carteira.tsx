@@ -1,6 +1,6 @@
 import { Button, Flex, Text } from '@nexpy/design-system'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useRouter } from 'next/router'
 
 import icone_carteira from '../../../icons/icone_carteira.svg'
 import seta_cima from '../../../icons/seta_cima.svg'
@@ -51,7 +51,8 @@ const transactionVisual = {
 } as const
 
 const Carteira = () => {
-  const [balance, setBalance] = useState(125.5)
+  const router = useRouter()
+  const balance = 125.5
 
   return (
     <Flex direction='column' bg='grey200' minHeight='100vh' pb='8rem'>
@@ -102,7 +103,7 @@ aproveitar todas as viagens.
             </Text>
           </Flex>
           <Button
-            onClick={() => setBalance(value => value + 10)}
+            onClick={() => router.push('/depositar_dinheiro')}
             size='auto'
             bg='royalAzure'
             borderRadius='1.5rem'

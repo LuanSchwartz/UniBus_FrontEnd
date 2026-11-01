@@ -69,7 +69,13 @@ const MenuCard = () => {
         const isTripSection =
           item.href === '/viagens' &&
           ['/detalhes_viagem'].includes(router.pathname)
-        const isActive = router.pathname === item.href || isProfileSection || isTripSection
+        const isWalletSection =
+          item.href === '/carteira' &&
+          ['/depositar_dinheiro', '/depositar_pix', '/deposito_realizado'].includes(
+            router.pathname,
+          )
+        const isActive =
+          router.pathname === item.href || isProfileSection || isTripSection || isWalletSection
 
         return (
           <A
