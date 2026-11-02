@@ -2,12 +2,76 @@ import { Flex, Text } from '@nexpy/design-system'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
+import { z } from 'zod'
 
 import iconcardactive from '../../../icons/iconcardactive.svg'
+
+const luhnCheck = (value: string) => {
+  let sum = 0
+  let shouldDouble = false
+
+  for (let index = value.length - 1; index >= 0; index -= 1) {
+    let digit = Number(value[index])
+
+    if (shouldDouble) {
+      digit *= 2
+      if (digit > 9) digit -= 9
+    }
+
+    sum += digit
+    shouldDouble = !shouldDouble
+  }
+
+  return sum % 10 === 0
+}
+
+const cardSchema = z
+  .object({
+    number: z
+      .string()
+      .regex(/^\d{16}$/, 'Informe os 16 números do cartão.')
+      .refine(luhnCheck, 'Informe um número de cartão válido.'),
+    expiry: z
+      .string()
+      .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Use o formato MM/AA.'),
+    cvv: z.string().regex(/^\d{3,4}$/, 'O CVV deve ter 3 ou 4 números.'),
+    name: z.string().trim().min(3, 'Informe o nome impresso no cartão.'),
+  })
 
 const MetodosDePagamento = () => {
   const router = useRouter()
   const [isAddingCard, setIsAddingCard] = useState(false)
+  const [card, setCard] = useState({ number: '', expiry: '', cvv: '', name: '' })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const updateCard = (field: keyof typeof card, value: string) => {
+    setCard(current => ({ ...current, [field]: value }))
+    setErrors(current => ({ ...current, [field]: '' }))
+  }
+
+  const handleSaveCard = (event: { preventDefault: () => void }) => {
+    event.preventDefault()
+
+    const result = cardSchema.safeParse({
+      ...card,
+      number: card.number.replace(/\D/g, ''),
+    })
+
+    if (!result.success) {
+      const nextErrors: Record<string, string> = {}
+
+      result.error.issues.forEach(issue => {
+        const field = String(issue.path[0] ?? 'form')
+        if (!nextErrors[field]) nextErrors[field] = issue.message
+      })
+
+      setErrors(nextErrors)
+      return
+    }
+
+    setErrors({})
+    setIsAddingCard(false)
+  }
 
   return (
     <Flex direction='column' bg='grey200' minHeight='100vh' pb='10rem'>
@@ -60,11 +124,13 @@ const MetodosDePagamento = () => {
       </Flex>
 
       <Flex
+        as='form'
         direction='column'
         gap='1.4rem'
         px='2rem'
         pt='0.5rem'
         style={{ display: isAddingCard ? 'flex' : 'none' }}
+        onSubmit={handleSaveCard}
       >
           <Flex direction='column' gap='0.5rem'>
             <Text color='prussianBlue' fontWeight='bold'>Número do cartão</Text>
@@ -72,6 +138,8 @@ const MetodosDePagamento = () => {
               type='text'
               inputMode='numeric'
               placeholder='0000 0000 0000 0000'
+              value={card.number.replace(/(\d{4})(?=\d)/g, '$1 ')}
+              onChange={event => updateCard('number', event.target.value.replace(/\D/g, '').slice(0, 16))}
               style={{
                 border: '1px solid #CBD5E1',
                 borderRadius: '1rem',
@@ -80,6 +148,7 @@ const MetodosDePagamento = () => {
                 padding: '0 1.2rem',
               }}
             />
+            {errors.number && <Text color='systemDanger' variant='caption'>{errors.number}</Text>}
           </Flex>
           <Flex gap='1rem'>
             <Flex direction='column' flex={1} gap='0.5rem'>
@@ -88,6 +157,11 @@ const MetodosDePagamento = () => {
                 type='text'
                 inputMode='numeric'
                 placeholder='MM/AA'
+                value={card.expiry}
+                onChange={event => {
+                  const value = event.target.value.replace(/\D/g, '').slice(0, 4)
+                  updateCard('expiry', value.length > 2 ? `${value.slice(0, 2)}/${value.slice(2)}` : value)
+                }}
                 style={{
                   border: '1px solid #CBD5E1',
                   borderRadius: '1rem',
@@ -97,6 +171,7 @@ const MetodosDePagamento = () => {
                   width: '100%',
                 }}
               />
+              {errors.expiry && <Text color='systemDanger' variant='caption'>{errors.expiry}</Text>}
             </Flex>
             <Flex direction='column' flex={1} gap='0.5rem'>
               <Text color='prussianBlue' fontWeight='bold'>CVV</Text>
@@ -104,6 +179,8 @@ const MetodosDePagamento = () => {
                 type='password'
                 inputMode='numeric'
                 placeholder='123'
+                value={card.cvv}
+                onChange={event => updateCard('cvv', event.target.value.replace(/\D/g, '').slice(0, 4))}
                 style={{
                   border: '1px solid #CBD5E1',
                   borderRadius: '1rem',
@@ -113,6 +190,7 @@ const MetodosDePagamento = () => {
                   width: '100%',
                 }}
               />
+              {errors.cvv && <Text color='systemDanger' variant='caption'>{errors.cvv}</Text>}
             </Flex>
           </Flex>
           <Flex direction='column' gap='0.5rem'>
@@ -120,6 +198,8 @@ const MetodosDePagamento = () => {
             <input
               type='text'
               placeholder='Nome completo'
+              value={card.name}
+              onChange={event => updateCard('name', event.target.value)}
               style={{
                 border: '1px solid #CBD5E1',
                 borderRadius: '1rem',
@@ -129,10 +209,10 @@ const MetodosDePagamento = () => {
                 width: '100%',
               }}
             />
+            {errors.name && <Text color='systemDanger' variant='caption'>{errors.name}</Text>}
           </Flex>
           <button
-            type='button'
-            onClick={() => setIsAddingCard(false)}
+            type='submit'
             style={{
               background: '#2167E8',
               border: 'none',

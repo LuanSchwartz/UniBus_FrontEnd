@@ -10,7 +10,9 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <ThemeProvider theme={customTheme}>
       <Component {...pageProps} />
-      {router.pathname !== '/' && router.pathname !== '/login' && <MenuCard />}
+      {router.pathname !== '/' && router.pathname !== '/login' && router.pathname !== '/admin' && (
+        <MenuCard />
+      )}
     </ThemeProvider>
   )
 }
