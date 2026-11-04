@@ -1,7 +1,9 @@
 import { Flex, Text } from '@nexpy/design-system'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
-import type { ReactNode } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
+
+import { type Usuario, getUsuario, perfilLabel } from '@/services/api'
 
 import iconArrowRight from '../../../icons/iconarrow.svg'
 import iconPerson from '../../../icons/iconPerson.svg'
@@ -55,8 +57,8 @@ const profileOptions: ProfileOption[] = [
     href: '/minhas_preferencias',
   },
   {
-    title: 'Métodos de pagamento',
-    description: 'Gerencie seus métodos de pagamento',
+    title: 'Formas de pagamento',
+    description: 'Veja como colocar saldo na carteira',
     icon: (
       <Image
         src={iconeMetodosDePagamento}
@@ -110,6 +112,11 @@ const profileOptions: ProfileOption[] = [
 
 const Perfil = () => {
   const router = useRouter()
+  const [usuario, setUsuario] = useState<Usuario | null>(null)
+
+  useEffect(() => {
+    getUsuario().then(setUsuario).catch(() => undefined)
+  }, [])
 
   return (
     <Flex direction='column' bg='grey200' minHeight='100vh' pb='8rem'>
@@ -138,9 +145,9 @@ const Perfil = () => {
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </Flex>
-          <Text color='blueSlate'>Estudante</Text>
+          <Text color='blueSlate'>{usuario ? perfilLabel[usuario.perfil] : ''}</Text>
           <Text fontSize='2rem' fontWeight='bold' color='prussianBlue'>
-            Ana Clara Silva
+            {usuario?.nome}
           </Text>
         </Flex>
       </Flex>

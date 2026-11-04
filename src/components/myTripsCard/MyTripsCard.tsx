@@ -10,7 +10,7 @@ import iconBusWarning from '../../../icons/iconbuswarning.svg'
 type TripStatus = 'confirmed' | 'pending' | 'canceled'
 
 type MyTripsCardProps = {
-  id: number
+  id: string
   status: TripStatus
   origin: string
   destination: string

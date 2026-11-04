@@ -1,13 +1,33 @@
 import { Flex, Text } from '@nexpy/design-system'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
-import { useState } from 'react'
+import { type FormEvent, useState } from 'react'
+
+import { login } from '@/services/api'
 
 import logo from '../../../icons/logo.svg'
 
 const Login = () => {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
+  const [email, setEmail] = useState('')
+  const [senha, setSenha] = useState('')
+  const [erro, setErro] = useState('')
+  const [enviando, setEnviando] = useState(false)
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    setErro('')
+    setEnviando(true)
+    try {
+      await login(email.trim(), senha)
+      await router.push('/inicio')
+    } catch (error) {
+      setErro((error as Error).message)
+    } finally {
+      setEnviando(false)
+    }
+  }
 
   return (
     <Flex
@@ -31,13 +51,17 @@ const Login = () => {
         </Text>
       </Flex>
 
-      <Flex as='form' direction='column' gap='1rem' mt='2.8rem' w='100%' maxWidth='38rem'>
+      <Flex as='form' onSubmit={handleSubmit} direction='column' gap='1rem' mt='2.8rem' w='100%' maxWidth='38rem'>
         <Flex direction='column' gap='0.5rem'>
           <Text color='prussianBlue' fontSize='1.5rem' fontWeight='bold'>
             E-mail
           </Text>
           <input
             type='email'
+            required
+            autoComplete='email'
+            value={email}
+            onChange={event => setEmail(event.target.value)}
             placeholder='seuemail@exemplo.com'
             style={{
               border: '1px solid #CBD5E1',
@@ -57,6 +81,10 @@ const Login = () => {
           <Flex alignItems='center' border='1px solid #CBD5E1' borderRadius='0.8rem' minHeight='3.8rem' px='1rem'>
             <input
               type={showPassword ? 'text' : 'password'}
+              required
+              autoComplete='current-password'
+              value={senha}
+              onChange={event => setSenha(event.target.value)}
               placeholder='Sua senha'
               style={{ border: 'none', flex: 1, fontSize: '1.2rem', outline: 'none' }}
             />
@@ -94,9 +122,15 @@ const Login = () => {
           Esqueceu sua senha?
         </button>
 
+        {erro && (
+          <Text color='systemDanger' fontSize='1.3rem' role='alert'>
+            {erro}
+          </Text>
+        )}
+
         <button
-          type='button'
-          onClick={() => router.push('/inicio')}
+          type='submit'
+          disabled={enviando}
           style={{
             background: '#2167E8',
             border: 'none',
@@ -108,39 +142,9 @@ const Login = () => {
             minHeight: '3.8rem',
           }}
         >
-          Entrar
+          {enviando ? 'Entrando...' : 'Entrar'}
         </button>
 
-        <Flex alignItems='center' gap='0.8rem' mt='0.2rem'>
-          <Flex bg='paleSlate' flex={1} h='1px' />
-          <Text color='coolSteal' fontSize='1.3rem'>
-            ou
-          </Text>
-          <Flex bg='paleSlate' flex={1} h='1px' />
-        </Flex>
-
-        <button
-          type='button'
-          style={{
-            alignItems: 'center',
-            background: 'transparent',
-            border: '1px solid #E2E8F0',
-            borderRadius: '0.8rem',
-            color: '#132A4D',
-            cursor: 'pointer',
-            display: 'flex',
-            fontSize: '1.2rem',
-            fontWeight: 'bold',
-            gap: '0.9rem',
-            justifyContent: 'center',
-            minHeight: '3.8rem',
-          }}
-        >
-          <Text color='#4285F4' fontSize='1.7rem' fontWeight='bold'>
-            G
-          </Text>
-          Entrar com Google
-        </button>
 
         {/* <Text color='blueSlate' fontSize='1.2rem' textAlign='center' mt='1rem'>
           Ainda não tem uma conta?{' '}

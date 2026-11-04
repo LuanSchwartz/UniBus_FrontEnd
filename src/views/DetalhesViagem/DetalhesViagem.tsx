@@ -1,7 +1,9 @@
 import { Box, Button, Flex, Text } from '@nexpy/design-system'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+
+import { type Viagem, alternarPresenca, obterViagem } from '@/services/viagensService'
 
 import iconCalendar from '../../../icons/iconcalendar.svg'
 import iconClock from '../../../icons/iconclock.svg'
@@ -9,62 +11,6 @@ import iconConfirmed from '../../../icons/iconconfirmed.svg'
 import iconCancel from '../../../icons/iconcancel.svg'
 import iconbank from '../../../icons/iconbank.svg'
 import iconpin from '../../../icons/iconpin.svg'
-
-type TripDetails = {
-  id: string
-  status: 'confirmed' | 'pending' | 'canceled'
-  origin: string
-  destination: string
-  date: string
-  time: string
-  occupiedSeats: number
-  totalSeats: number
-  boarding: string
-  arrival: string
-  description: string
-}
-
-const trips: TripDetails[] = [
-  {
-    id: '1',
-    status: 'confirmed',
-    origin: 'Pedro Osório',
-    destination: 'Pelotas',
-    date: '26 de agosto (Segunda-feira)',
-    time: '07:00',
-    occupiedSeats: 4,
-    totalSeats: 42,
-    boarding: 'Terminal de Pedro Osório',
-    arrival: 'Rodoviária de Pelotas',
-    description: 'Viagem regular da linha Pedro Osório → Pelotas.',
-  },
-  {
-    id: '2',
-    status: 'canceled',
-    origin: 'Pedro Osório',
-    destination: 'Pelotas',
-    date: '26 de agosto (Segunda-feira)',
-    time: '07:00',
-    occupiedSeats: 12,
-    totalSeats: 42,
-    boarding: 'Terminal de Pedro Osório',
-    arrival: 'Rodoviária de Pelotas',
-    description: 'Viagem regular da linha Pedro Osório → Pelotas.',
-  },
-  {
-    id: '3',
-    status: 'pending',
-    origin: 'Pedro Osório',
-    destination: 'Pelotas',
-    date: '26 de agosto (Segunda-feira)',
-    time: '07:00',
-    occupiedSeats: 12,
-    totalSeats: 42,
-    boarding: 'Terminal de Pedro Osório',
-    arrival: 'Rodoviária de Pelotas',
-    description: 'Viagem regular da linha Pedro Osório → Pelotas.',
-  },
-]
 
 const statusConfig = {
   confirmed: {
@@ -87,20 +33,40 @@ const statusConfig = {
 const DetalhesViagem = () => {
   const router = useRouter()
   const tripId = typeof router.query.id === 'string' ? router.query.id : ''
-  const trip = trips.find(item => item.id === tripId) ?? trips[0]
-  const [isConfirmed, setIsConfirmed] = useState(trip.status === 'confirmed')
-  const [occupiedSeats, setOccupiedSeats] = useState(trip.occupiedSeats)
-  const status = isConfirmed ? 'confirmed' : trip.status === 'canceled' ? 'canceled' : 'pending'
-  const visual = statusConfig[status]
-  const occupancy = Math.min((occupiedSeats / trip.totalSeats) * 100, 100)
+  const [trip, setTrip] = useState<Viagem | null>(null)
+  const [erro, setErro] = useState('')
+  const [enviando, setEnviando] = useState(false)
 
-  const handleAttendance = () => {
-    setOccupiedSeats(currentSeats => {
-      if (isConfirmed) return Math.max(currentSeats - 1, 0)
+  useEffect(() => {
+    if (!tripId) return
+    obterViagem(tripId)
+      .then(setTrip)
+      .catch(error => setErro(error.message))
+  }, [tripId])
 
-      return Math.min(currentSeats + 1, trip.totalSeats)
-    })
-    setIsConfirmed(value => !value)
+  if (!trip) {
+    return (
+      <Text color='blueSlate' textAlign='center' mt='4rem'>
+        {erro || 'Carregando...'}
+      </Text>
+    )
+  }
+
+  const isActive = trip.ativa
+  const occupiedSeats = trip.occupiedSeats
+  const visual = statusConfig[trip.status]
+  const occupancy = trip.totalSeats > 0 ? Math.min((occupiedSeats / trip.totalSeats) * 100, 100) : 0
+
+  const handleAttendance = async () => {
+    setErro('')
+    setEnviando(true)
+    try {
+      setTrip(await alternarPresenca(trip))
+    } catch (error) {
+      setErro((error as Error).message)
+    } finally {
+      setEnviando(false)
+    }
   }
 
   return (
@@ -229,11 +195,19 @@ const DetalhesViagem = () => {
         </Flex>
       </Flex>
 
-      <Flex bg='systemWhite' bottom='8rem' left={0} p='2rem' position='fixed' right={0}>
+      {(isActive || trip.podeConfirmar || erro) && (
+      <Flex bg='systemWhite' bottom='8rem' direction='column' gap='0.8rem' left={0} p='2rem' position='fixed' right={0}>
+        {(erro || trip.emEspera) && (
+          <Text color={erro ? 'systemDanger' : 'blueSlate'} textAlign='center' role='alert'>
+            {erro || 'Você está na fila de espera desta viagem.'}
+          </Text>
+        )}
+        {(isActive || trip.podeConfirmar) && (
         <Button
           onClick={handleAttendance}
+          disabled={enviando}
           size='auto'
-          bg={isConfirmed ? 'systemDanger' : 'royalAzure'}
+          bg={isActive ? 'systemDanger' : 'royalAzure'}
           borderRadius='1.6rem'
           color='systemWhite'
           flex={1}
@@ -244,10 +218,12 @@ const DetalhesViagem = () => {
           fontWeight='bold'
           textTransform='none'
         >
-          <Image src={isConfirmed ? iconCancel : iconConfirmed} alt='' width={24} height={24} />
-          {isConfirmed ? 'Cancelar presença' : 'Confirmar presença'}
+          <Image src={isActive ? iconCancel : iconConfirmed} alt='' width={24} height={24} />
+          {isActive ? 'Cancelar presença' : 'Confirmar presença'}
         </Button>
+        )}
       </Flex>
+      )}
     </Flex>
   )
 }

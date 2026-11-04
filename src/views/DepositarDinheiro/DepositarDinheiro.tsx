@@ -1,6 +1,9 @@
 import { Flex, Text } from '@nexpy/design-system'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
+import { useEffect, useState } from 'react'
+
+import { formatarMoeda, getCarteira } from '@/services/carteiraService'
 
 import icone_atencao from '../../../icons/icone_atencao.svg'
 import icone_carteira from '../../../icons/icone_carteira.svg'
@@ -10,6 +13,13 @@ import wallet_wave from '../../../icons/wallet_wave.svg'
 
 const DepositarDinheiro = () => {
   const router = useRouter()
+  const [balance, setBalance] = useState<string | null>(null)
+
+  useEffect(() => {
+    getCarteira()
+      .then(carteira => setBalance(carteira.saldo))
+      .catch(() => undefined)
+  }, [])
 
   return (
     <Flex direction='column' bg='grey200' minHeight='100vh' pb='8rem'>
@@ -59,7 +69,7 @@ aproveitar todas as viagens.
               <Text color='paleSlate'>Saldo atual</Text>
             </Flex>
             <Text color='systemWhite' fontSize='3.4rem' fontWeight='bold'>
-              R$ 125,50
+              {balance === null ? '—' : formatarMoeda(balance)}
             </Text>
           </Flex>
         </Flex>

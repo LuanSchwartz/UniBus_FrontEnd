@@ -2,6 +2,8 @@ import { Flex, Text } from '@nexpy/design-system'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
 
+import { logout } from '@/services/api'
+
 import logo_sair from '../../../icons/logo_sair.svg'
 import logo_sair_2 from '../../../icons/logo_sair_2.svg'
 
@@ -78,7 +80,10 @@ const SairConta = () => {
 
         <button
           type='button'
-          onClick={() => router.push('/')}
+          onClick={async () => {
+            await logout()
+            router.push('/')
+          }}
           style={{
             background: '#E91546',
             border: 'none',

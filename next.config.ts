@@ -4,6 +4,11 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
   reactStrictMode: true,
+  // O back não habilita CORS: as chamadas passam por este proxy.
+  async rewrites() {
+    const apiUrl = process.env.API_URL ?? 'http://localhost:3000'
+    return [{ source: '/api/v1/:path*', destination: `${apiUrl}/api/v1/:path*` }]
+  },
   compiler: {
     styledComponents: {
       ssr: true,
