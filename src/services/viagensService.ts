@@ -12,10 +12,8 @@ type Trecho = {
   id: string
   status: string
   saidaPrevistaEm: string
-  limiteConfirmacaoEm: string
   capacidade: number | null
   capacidadeExtra: number | null
-  inscricoesSuspensas?: boolean
   viagem: { nomeRota: string }
   paradas: Parada[]
   _count: { participacoes: number }
@@ -24,7 +22,7 @@ type Trecho = {
 
 export type Viagem = {
   id: string
-  status: 'confirmed' | 'pending' | 'canceled'
+  status: 'confirmed' | 'pending' | 'canceled' | 'completed'
   proxima: boolean
   origin: string
   destination: string
@@ -40,7 +38,6 @@ export type Viagem = {
   participacaoId?: string
   ativa: boolean
   emEspera: boolean
-  podeConfirmar: boolean
 }
 
 const timeZone = 'America/Sao_Paulo'
@@ -67,13 +64,20 @@ const paraViagem = (trecho: Trecho, participacao?: Participacao | null): Viagem 
   const agora = new Date()
   const origem = trecho.paradas[0]
   const destino = trecho.paradas[trecho.paradas.length - 1]
-  const cancelada = trecho.status === 'CANCELADO' || participacao?.status === 'CANCELADA'
+  // Só a operação cancela a viagem; presença cancelada pelo estudante volta a "pendente" e pode ser reconfirmada.
+  const cancelada = trecho.status === 'CANCELADO'
   const confirmada = participacao?.status === 'CONFIRMADA'
   const emEspera = participacao?.status === 'EM_ESPERA'
 
   return {
     id: trecho.id,
-    status: confirmada && trecho.status !== 'CANCELADO' ? 'confirmed' : cancelada ? 'canceled' : 'pending',
+    status: cancelada
+      ? 'canceled'
+      : trecho.status === 'CONCLUIDO'
+        ? 'completed'
+        : confirmada
+          ? 'confirmed'
+          : 'pending',
     proxima: saida > agora && trecho.status !== 'CANCELADO' && trecho.status !== 'CONCLUIDO',
     origin: origem?.cidade ?? '',
     destination: destino?.cidade ?? '',
@@ -89,10 +93,6 @@ const paraViagem = (trecho: Trecho, participacao?: Participacao | null): Viagem 
     participacaoId: participacao?.id,
     ativa: trecho.status !== 'CANCELADO' && (confirmada || emEspera),
     emEspera,
-    podeConfirmar:
-      trecho.status === 'ABERTO' &&
-      !trecho.inscricoesSuspensas &&
-      agora <= new Date(trecho.limiteConfirmacaoEm),
   }
 }
 

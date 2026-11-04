@@ -1,8 +1,14 @@
 import { Flex, Text } from '@nexpy/design-system'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
+
+import {
+  type PreferenciasNotificacao,
+  atualizarPreferenciasNotificacao,
+  getPreferenciasNotificacao,
+} from '@/services/preferenciasService'
 
 import iconeNotificacao from '../../../icons/iconeNotificacao.svg'
 import icone_alteracao_rota from '../../../icons/icone_alteracao_rota.svg'
@@ -12,13 +18,7 @@ import icone_avisos_operador from '../../../icons/icone_avisos_operador.svg'
 import icone_promocoes from '../../../icons/icone_promocoes.svg'
 import icone_silenciar from '../../../icons/icone_silenciar.svg'
 
-type NotificationKey =
-  | 'tripConfirmation'
-  | 'routeChanges'
-  | 'cancellations'
-  | 'scheduleReminders'
-  | 'operatorNotices'
-  | 'promotions'
+type NotificationKey = Exclude<keyof PreferenciasNotificacao, 'ativadas'>
 
 type NotificationOption = {
   id: NotificationKey
@@ -31,7 +31,7 @@ type NotificationOption = {
 
 const notificationOptions: NotificationOption[] = [
   {
-    id: 'tripConfirmation',
+    id: 'confirmacoes',
     title: 'Confirmações de viagem',
     description: 'Receba lembretes para confirmar sua presença.',
     icon: <Image src={iconeNotificacao} alt='Ícone de notificações' width={16} height={16} />,
@@ -39,7 +39,7 @@ const notificationOptions: NotificationOption[] = [
     iconColor: '#10B981',
   },
   {
-    id: 'routeChanges',
+    id: 'alteracoesRota',
     title: 'Alterações de rota',
     description: 'Seja avisado sobre mudanças no itinerário.',
     icon: <Image src={icone_alteracao_rota} alt='Ícone de notificações' width={16} height={16} />,
@@ -47,7 +47,7 @@ const notificationOptions: NotificationOption[] = [
     iconColor: '#2563EB',
   },
   {
-    id: 'cancellations',
+    id: 'cancelamentos',
     title: 'Cancelamentos',
     description: 'Receba alertas em caso de cancelamento da viagem.',
     icon: <Image src={icone_cancelamento} alt='Ícone de notificações' width={16} height={16} />,
@@ -55,7 +55,7 @@ const notificationOptions: NotificationOption[] = [
     iconColor: '#FB4A5A',
   },
   {
-    id: 'scheduleReminders',
+    id: 'lembretes',
     title: 'Lembretes de horário',
     description: 'Notificações antes do embarque.',
     icon: <Image src={icone_lembrete} alt='Ícone de notificações' width={16} height={16} />,
@@ -63,7 +63,7 @@ const notificationOptions: NotificationOption[] = [
     iconColor: '#10B981',
   },
   {
-    id: 'operatorNotices',
+    id: 'avisosOperador',
     title: 'Avisos do operador',
     description: 'Mensagens importantes da equipe.',
     icon: <Image src={icone_avisos_operador} alt='Ícone de notificações' width={16} height={16} />,
@@ -71,7 +71,7 @@ const notificationOptions: NotificationOption[] = [
     iconColor: '#FB4A5A',
   },
   {
-    id: 'promotions',
+    id: 'novidades',
     title: 'Promoções e novidades',
     description: 'Receba novidades sobre o serviço.',
     icon: <Image src={icone_promocoes} alt='Ícone de notificações' width={16} height={16} />,
@@ -79,15 +79,6 @@ const notificationOptions: NotificationOption[] = [
     iconColor: '#2563EB',
   },
 ]
-
-const initialPreferences: Record<NotificationKey, boolean> = {
-  tripConfirmation: true,
-  routeChanges: true,
-  cancellations: true,
-  scheduleReminders: true,
-  operatorNotices: true,
-  promotions: false,
-}
 
 type ToggleProps = {
   checked: boolean
@@ -133,15 +124,30 @@ const Toggle = ({ checked, disabled = false, label, onClick }: ToggleProps) => (
 
 const Notificacoes = () => {
   const router = useRouter()
-  const [preferences, setPreferences] = useState(initialPreferences)
-  const [isMuted, setIsMuted] = useState(false)
+  const [preferences, setPreferences] = useState<PreferenciasNotificacao | null>(null)
+  const [erro, setErro] = useState('')
 
-  const togglePreference = (id: NotificationKey) => {
-    setPreferences(currentPreferences => ({
-      ...currentPreferences,
-      [id]: !currentPreferences[id],
-    }))
+  useEffect(() => {
+    getPreferenciasNotificacao()
+      .then(setPreferences)
+      .catch(error => setErro(error.message))
+  }, [])
+
+  // Salva a cada toque; se o back recusar, a chave volta ao valor anterior.
+  const togglePreference = async (id: keyof PreferenciasNotificacao) => {
+    if (!preferences) return
+    const anterior = preferences
+    setErro('')
+    setPreferences({ ...preferences, [id]: !preferences[id] })
+    try {
+      setPreferences(await atualizarPreferenciasNotificacao({ [id]: !anterior[id] }))
+    } catch (error) {
+      setPreferences(anterior)
+      setErro((error as Error).message)
+    }
   }
+
+  const isMuted = preferences ? !preferences.ativadas : false
 
   return (
     <Flex direction='column' bg='grey200' minHeight='100vh' pb='10rem'>
@@ -182,8 +188,13 @@ const Notificacoes = () => {
       </Flex>
 
       <Flex direction='column' gap='2.5rem' px='2rem'>
+        {(erro || !preferences) && (
+          <Text color={erro ? 'systemDanger' : 'blueSlate'} textAlign='center' role='alert'>
+            {erro || 'Carregando...'}
+          </Text>
+        )}
         {notificationOptions.map(option => {
-          const isEnabled = !isMuted && preferences[option.id]
+          const isEnabled = !isMuted && Boolean(preferences?.[option.id])
 
           return (
             <Flex key={option.id} alignItems='center' gap='1.2rem'>
@@ -213,7 +224,7 @@ const Notificacoes = () => {
               <Toggle
                 label={option.title}
                 checked={isEnabled}
-                disabled={isMuted}
+                disabled={isMuted || !preferences}
                 onClick={() => togglePreference(option.id)}
               />
             </Flex>
@@ -255,7 +266,8 @@ const Notificacoes = () => {
           <Toggle
             label='Silenciar notificações'
             checked={isMuted}
-            onClick={() => setIsMuted(value => !value)}
+            disabled={!preferences}
+            onClick={() => togglePreference('ativadas')}
           />
         </Flex>
       </Flex>
