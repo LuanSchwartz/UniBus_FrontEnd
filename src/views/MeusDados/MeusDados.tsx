@@ -7,7 +7,7 @@ import { type Usuario, atualizarUsuario, getUsuario, perfilLabel } from '@/servi
 
 import iconCalendar from '../../../icons/iconcalendar.svg'
 import iconPin from '../../../icons/iconpin.svg'
-import profileImage from '../../../icons/imagemperfil.svg'
+import foto_perfil from '../../../icons/foto_perfil.png'
 
 type PersonalField = {
   id: keyof PersonalData
@@ -194,7 +194,7 @@ const MeusDados = () => {
           style={{ overflow: 'hidden' }}
         >
           <Image
-            src={profileImage}
+            src={foto_perfil}
             alt={`Imagem de perfil de ${usuario?.nome ?? ''}`}
             width={80}
             height={80}

@@ -14,7 +14,7 @@ import iconeDuvida from '../../../icons/iconeDuvida.svg'
 import iconeTermosDeUso from '../../../icons/iconeTermosDeUso.svg'
 import iconePoliticaDePrivacidade from '../../../icons/iconePoliticaDePrivacidade.svg'
 import iconeSair from '../../../icons/iconeSair.svg'
-import imagemperfil from '../../../icons/imagemperfil.svg'
+import foto_perfil from '../../../icons/foto_perfil.png'
 
 type ProfileOption = {
   title: string
@@ -138,7 +138,7 @@ const Perfil = () => {
             style={{ overflow: 'hidden' }}
           >
             <Image
-              src={imagemperfil}
+              src={foto_perfil}
               alt='Imagem do perfil'
               width={80}
               height={80}
