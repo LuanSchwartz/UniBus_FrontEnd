@@ -188,7 +188,6 @@ const Home = () => {
               {erro}
             </Text>
           )}
-          {(isConfirmed || proxima.podeConfirmar) && (
           <Button
             onClick={handleAttendance}
             disabled={enviando}
@@ -211,7 +210,6 @@ const Home = () => {
             />
             {isConfirmed ? 'Cancelar presença' : 'Confirmar presença'}
           </Button>
-          )}
 
           <Flex
             direction='row'

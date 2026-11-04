@@ -7,7 +7,7 @@ import iconBusDanger from '../../../icons/iconbusdanger.svg'
 import iconBusSafe from '../../../icons/iconbussafe.svg'
 import iconBusWarning from '../../../icons/iconbuswarning.svg'
 
-type TripStatus = 'confirmed' | 'pending' | 'canceled'
+type TripStatus = 'confirmed' | 'pending' | 'canceled' | 'completed'
 
 type MyTripsCardProps = {
   id: string
@@ -38,6 +38,12 @@ const statusConfig = {
     background: 'snow',
     color: 'systemDanger',
     icon: iconBusDanger,
+  },
+  completed: {
+    label: 'Concluída',
+    background: 'grey100',
+    color: 'grey500',
+    icon: iconBusSafe,
   },
 }
 

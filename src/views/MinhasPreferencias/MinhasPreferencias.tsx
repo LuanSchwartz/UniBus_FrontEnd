@@ -1,20 +1,69 @@
 import { Flex, Text } from '@nexpy/design-system'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
-import { type Dispatch, type SetStateAction, useState } from 'react'
+import { useEffect, useState } from 'react'
+
+import {
+  type OpcoesPreferencias,
+  type Preferencias,
+  type Turno,
+  atualizarPreferencias,
+  getOpcoesPreferencias,
+  getPreferencias,
+} from '@/services/preferenciasService'
 
 import icone_pref from '../../../icons/icone_pref.svg'
 import icone_seta from '../../../icons/icone_seta.svg'
 
+const turnos: [Turno, string][] = [
+  ['MANHA', 'Manhã (05:45 - 14:00)'],
+  ['TARDE', 'Tarde (11:50 - 20:00)'],
+  ['NOITE', 'Noite (17:20 - 23:00)'],
+]
+
+const cardStyle = {
+  alignItems: 'center',
+  background: '#fff',
+  border: '1px solid #CBD5E1',
+  borderRadius: '1.2rem',
+  cursor: 'pointer',
+  display: 'flex',
+  justifyContent: 'space-between',
+  padding: '1.4rem',
+} as const
+
+const checkboxStyle = { accentColor: '#2563EB', height: '1.8rem', width: '1.8rem' }
+
 const MinhasPreferencias = () => {
   const router = useRouter()
-  const [cities, setCities] = useState({ pelotas: true, pedroOsorio: true })
-  const [times, setTimes] = useState({ morning: true, afternoon: false, night: true })
+  const [opcoes, setOpcoes] = useState<OpcoesPreferencias | null>(null)
+  const [preferencias, setPreferencias] = useState<Preferencias | null>(null)
+  const [erro, setErro] = useState('')
 
-  const toggle = <T extends Record<string, boolean>>(
-    setState: Dispatch<SetStateAction<T>>,
-    key: keyof T
-  ) => setState(current => ({ ...current, [key]: !current[key] }))
+  useEffect(() => {
+    Promise.all([getOpcoesPreferencias(), getPreferencias()])
+      .then(([opcoesBack, preferenciasBack]) => {
+        setOpcoes(opcoesBack)
+        setPreferencias(preferenciasBack)
+      })
+      .catch(error => setErro(error.message))
+  }, [])
+
+  // Salva a cada toque; se o back recusar, a lista volta ao valor anterior.
+  const toggle = async <K extends keyof Preferencias>(campo: K, valor: Preferencias[K][number]) => {
+    if (!preferencias) return
+    const anterior = preferencias
+    const lista = anterior[campo] as string[]
+    const nova = lista.includes(valor) ? lista.filter(item => item !== valor) : [...lista, valor]
+    setErro('')
+    setPreferencias({ ...anterior, [campo]: nova })
+    try {
+      setPreferencias(await atualizarPreferencias({ [campo]: nova }))
+    } catch (error) {
+      setPreferencias(anterior)
+      setErro((error as Error).message)
+    }
+  }
 
   return (
     <Flex direction='column' bg='grey200' minHeight='100vh' pb='10rem'>
@@ -54,6 +103,11 @@ const MinhasPreferencias = () => {
         </Text>
       </Flex>
       <Flex direction='column' gap='2.4rem' px='2rem'>
+        {(erro || !preferencias) && (
+          <Text color={erro ? 'systemDanger' : 'blueSlate'} textAlign='center' role='alert'>
+            {erro || 'Carregando...'}
+          </Text>
+        )}
         <Flex direction='column' gap='0.8rem'>
           <Flex direction='column'>
             <Text color='prussianBlue' fontWeight='bold'>
@@ -63,25 +117,8 @@ const MinhasPreferencias = () => {
               Selecione as cidades que você mais utiliza.
             </Text>
           </Flex>
-          {(
-            [
-              ['pelotas', 'Pelotas - RS'],
-              ['pedroOsorio', 'Pedro Osório'],
-            ] as const
-          ).map(([key, label]) => (
-            <label
-              key={key}
-              style={{
-                alignItems: 'center',
-                background: '#fff',
-                border: '1px solid #CBD5E1',
-                borderRadius: '1.2rem',
-                cursor: 'pointer',
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '1.4rem',
-              }}
-            >
+          {(opcoes?.cidades ?? []).map(cidade => (
+            <label key={cidade.id} style={cardStyle}>
               <Image
                 src={icone_pref}
                 alt='Ícone de preferência'
@@ -89,13 +126,14 @@ const MinhasPreferencias = () => {
                 height={16}
               />
               <Text color='prussianBlue' flex={1} ml='1.2rem' fontWeight='bold'>
-                {label}
+                {cidade.nome}
               </Text>
               <input
                 type='checkbox'
-                checked={cities[key]}
-                onChange={() => toggle(setCities, key)}
-                style={{ accentColor: '#2563EB', height: '1.8rem', width: '1.8rem' }}
+                checked={Boolean(preferencias?.cidadeIds.includes(cidade.id))}
+                disabled={!preferencias}
+                onChange={() => toggle('cidadeIds', cidade.id)}
+                style={checkboxStyle}
               />
             </label>
           ))}
@@ -109,13 +147,7 @@ const MinhasPreferencias = () => {
               Selecione os períodos que mais viaja.
             </Text>
           </Flex>
-          {(
-            [
-              ['morning', 'Manhã (06:00 - 12:00)'],
-              ['afternoon', 'Tarde (12:00 - 18:00)'],
-              ['night', 'Noite (18:00 - 23:00)'],
-            ] as const
-          ).map(([key, label]) => (
+          {turnos.map(([key, label]) => (
             <label
               key={key}
               style={{
@@ -127,9 +159,10 @@ const MinhasPreferencias = () => {
             >
               <input
                 type='checkbox'
-                checked={times[key]}
-                onChange={() => toggle(setTimes, key)}
-                style={{ accentColor: '#2563EB', height: '1.8rem', width: '1.8rem' }}
+                checked={Boolean(preferencias?.turnos.includes(key))}
+                disabled={!preferencias}
+                onChange={() => toggle('turnos', key)}
+                style={checkboxStyle}
               />
               <Text color='prussianBlue' fontWeight='bold' variant='caption'>
                 {label}
@@ -143,29 +176,24 @@ const MinhasPreferencias = () => {
               Rotas favoritas
             </Text>
             <Text color='blueSlate' variant='caption'>
-              Suas rotas mais frequentes.
+              Selecione as rotas que você mais utiliza.
             </Text>
           </Flex>
-          <Flex
-            bg='systemWhite'
-            borderColor='paleSlate'
-            borderRadius='1.2rem'
-            borderStyle='solid'
-            borderWidth='1px'
-            alignItems='center'
-            gap='1.2rem'
-            p='1.4rem'
-          >
-              <Image
-                src={icone_seta}
-                alt='Ícone de preferência'
-                width={16}
-                height={16}
+          {(opcoes?.rotas ?? []).map(rota => (
+            <label key={rota.id} style={cardStyle}>
+              <Image src={icone_seta} alt='Ícone de preferência' width={16} height={16} />
+              <Text color='prussianBlue' flex={1} ml='1.2rem' fontWeight='bold'>
+                {rota.nome}
+              </Text>
+              <input
+                type='checkbox'
+                checked={Boolean(preferencias?.rotaIds.includes(rota.id))}
+                disabled={!preferencias}
+                onChange={() => toggle('rotaIds', rota.id)}
+                style={checkboxStyle}
               />
-            <Text color='prussianBlue' fontWeight='bold'>
-              Pedro Osório → Pelotas
-            </Text>
-          </Flex>
+            </label>
+          ))}
         </Flex>
       </Flex>
     </Flex>

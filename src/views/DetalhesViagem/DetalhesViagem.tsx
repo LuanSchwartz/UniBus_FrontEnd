@@ -28,6 +28,11 @@ const statusConfig = {
     background: 'snow',
     color: 'systemDanger',
   },
+  completed: {
+    label: 'Viagem concluída',
+    background: 'grey100',
+    color: 'grey500',
+  },
 }
 
 const DetalhesViagem = () => {
@@ -195,14 +200,13 @@ const DetalhesViagem = () => {
         </Flex>
       </Flex>
 
-      {(isActive || trip.podeConfirmar || erro) && (
+      {trip.status !== 'completed' && (
       <Flex bg='systemWhite' bottom='8rem' direction='column' gap='0.8rem' left={0} p='2rem' position='fixed' right={0}>
         {(erro || trip.emEspera) && (
           <Text color={erro ? 'systemDanger' : 'blueSlate'} textAlign='center' role='alert'>
             {erro || 'Você está na fila de espera desta viagem.'}
           </Text>
         )}
-        {(isActive || trip.podeConfirmar) && (
         <Button
           onClick={handleAttendance}
           disabled={enviando}
@@ -221,7 +225,6 @@ const DetalhesViagem = () => {
           <Image src={isActive ? iconCancel : iconConfirmed} alt='' width={24} height={24} />
           {isActive ? 'Cancelar presença' : 'Confirmar presença'}
         </Button>
-        )}
       </Flex>
       )}
     </Flex>

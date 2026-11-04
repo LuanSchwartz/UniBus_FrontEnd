@@ -9,6 +9,7 @@ type Movimentacao = {
   criadoEm: string
   recargaId: string | null
   participacao: { trecho: { sentido: 'IDA' | 'VOLTA' } } | null
+  movimentacaoOriginal: { id: string; recargaId: string | null } | null
 }
 
 export type Recarga = {
@@ -75,7 +76,13 @@ export const listarTransacoes = async (): Promise<Transacao[]> => {
       recargaId: recarga.id,
     }))
 
-  const movimentacoes: Transacao[] = extrato.map(mov => ({
+  // Passagem cobrada e depois estornada se anula: some do histórico (o estorno é sempre mais novo que a cobrança).
+  const estornosDePassagem = extrato.filter(
+    mov => mov.tipo === 'ESTORNO' && mov.movimentacaoOriginal && !mov.movimentacaoOriginal.recargaId,
+  )
+  const anuladas = new Set(estornosDePassagem.flatMap(mov => [mov.id, mov.movimentacaoOriginal!.id]))
+
+  const movimentacoes: Transacao[] = extrato.filter(mov => !anuladas.has(mov.id)).map(mov => ({
     id: mov.id,
     titulo: tituloMovimentacao(mov),
     valor: Math.abs(Number(mov.valor)),

@@ -3,7 +3,7 @@ import Image from 'next/image'
 
 import iconPerson from '../../../icons/iconPerson.svg'
 
-type AttendanceStatus = 'confirmed' | 'pending' | 'canceled'
+type AttendanceStatus = 'confirmed' | 'pending' | 'canceled' | 'completed'
 
 const statusConfiguration = {
   confirmed: {
@@ -20,6 +20,11 @@ const statusConfiguration = {
     backgroundColor: 'snow',
     textColor: 'systemDanger',
     text: 'Cancelada',
+  },
+  completed: {
+    backgroundColor: 'grey100',
+    textColor: 'grey500',
+    text: 'Concluída',
   },
 }
 
