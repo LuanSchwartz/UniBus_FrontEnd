@@ -4,9 +4,9 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
   reactStrictMode: true,
-  // O back não habilita CORS: as chamadas passam por este proxy.
+  // O back não habilita CORS: as chamadas passam por este proxy. Sem API_URL (ex.: na Vercel), usa o back do Render.
   async rewrites() {
-    const apiUrl = process.env.API_URL ?? 'http://localhost:3000'
+    const apiUrl = process.env.API_URL ?? 'https://unibus-back-end.onrender.com'
     return [{ source: '/api/v1/:path*', destination: `${apiUrl}/api/v1/:path*` }]
   },
   compiler: {
