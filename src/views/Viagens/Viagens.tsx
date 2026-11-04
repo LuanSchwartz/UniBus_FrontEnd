@@ -1,66 +1,30 @@
 import { Flex, Text } from '@nexpy/design-system'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import MyTripsCard from '@/components/myTripsCard/MyTripsCard'
+import { type Viagem, listarViagens } from '@/services/viagensService'
 
 type FiltroViagens = 'proximas' | 'todas' | 'canceladas'
 
-type Viagem = {
-  id: number
-  status: 'confirmed' | 'pending' | 'canceled'
-  categoria: 'proxima' | 'cancelada'
-  origin: string
-  destination: string
-  date: string
-  time: string
-  seats: string
-  tag?: string
-}
-
-const viagens: Viagem[] = [
-  {
-    id: 1,
-    status: 'confirmed',
-    categoria: 'proxima',
-    origin: 'Pedro Osório',
-    destination: 'Pelotas',
-    date: '26 de agosto (Seg)',
-    time: '07:00',
-    seats: '4 / 42 vagas',
-  },
-  {
-    id: 2,
-    status: 'canceled',
-    categoria: 'cancelada',
-    origin: 'Pedro Osório',
-    destination: 'Pelotas',
-    date: '26 de agosto (Seg)',
-    time: '07:00',
-    seats: '12/ 42 vagas'
-  },
-  {
-    id: 3,
-    status: 'pending',
-    categoria: 'proxima',
-    origin: 'Pedro Osório',
-    destination: 'Pelotas',
-    date: '26 de agosto (Seg)',
-    time: '07:00',
-    seats: '12/ 42 vagas'
-  }
-]
-
 const Viagens = () => {
   const [filtro, setFiltro] = useState<FiltroViagens>('proximas')
+  const [viagens, setViagens] = useState<Viagem[] | null>(null)
+  const [erro, setErro] = useState('')
 
-  const viagensFiltradas = viagens.filter(viagem => {
+  useEffect(() => {
+    listarViagens()
+      .then(setViagens)
+      .catch(error => setErro(error.message))
+  }, [])
+
+  const viagensFiltradas = (viagens ?? []).filter(viagem => {
     if (filtro === 'todas') return true
 
     if (filtro === 'canceladas') {
-      return viagem.categoria === 'cancelada'
+      return viagem.status === 'canceled'
     }
 
-    return viagem.categoria === 'proxima'
+    return viagem.proxima && viagem.status !== 'canceled'
   })
 
     return (
@@ -135,14 +99,13 @@ const Viagens = () => {
             destination={viagem.destination}
             date={viagem.date}
             time={viagem.time}
-            seats={viagem.seats}
-            tag={viagem.tag}
+            seats={`${viagem.occupiedSeats} / ${viagem.totalSeats} vagas`}
             />
         ))}
-        
-        {viagensFiltradas.length === 0 && (
+
+        {(erro || (viagens && viagensFiltradas.length === 0)) && (
           <Text color='blueSlate' textAlign='center' mt='2rem'>
-            Nenhuma viagem encontrada.
+            {erro || 'Nenhuma viagem encontrada.'}
           </Text>
         )}
       </Flex>

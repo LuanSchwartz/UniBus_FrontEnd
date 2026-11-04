@@ -1,7 +1,9 @@
 import { Button, Flex, Text } from '@nexpy/design-system'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+
+import { type Usuario, atualizarUsuario, getUsuario, perfilLabel } from '@/services/api'
 
 import iconCalendar from '../../../icons/iconcalendar.svg'
 import iconPin from '../../../icons/iconpin.svg'
@@ -12,6 +14,7 @@ type PersonalField = {
   label: string
   icon?: typeof iconCalendar
   type?: 'date' | 'email' | 'tel' | 'text'
+  editable?: boolean
 }
 
 type PersonalData = {
@@ -25,9 +28,9 @@ type PersonalData = {
 }
 
 const personalFields: PersonalField[] = [
-  { id: 'name', label: 'Nome completo' },
+  { id: 'name', label: 'Nome completo', editable: true },
   { id: 'email', label: 'E-mail', type: 'email' },
-  { id: 'phone', label: 'Telefone', type: 'tel' },
+  { id: 'phone', label: 'Telefone', type: 'tel', editable: true },
   {
     id: 'birthDate',
     label: 'Data de nascimento',
@@ -42,57 +45,97 @@ const personalFields: PersonalField[] = [
   },
 ]
 
-const initialPersonalData: PersonalData = {
-  name: 'Ana Clara Silva',
-  email: 'ana.clara@senacrs.edu.br',
-  phone: '(53) 9 9123-4567',
-  birthDate: '14/03/2003',
-  university: 'Centro Universitário Senac-RS',
-  course: 'Análise e Desenvolvimento de Sistemas',
-  hometown: 'Pedro Osório - RS',
+const emptyPersonalData: PersonalData = {
+  name: '',
+  email: '',
+  phone: '',
+  birthDate: '',
+  university: '',
+  course: '',
+  hometown: '',
+}
+
+// O back guarda o telefone só com dígitos: DDD + 8 ou 9 dígitos, com 55 opcional.
+const formatPhone = (value: string) => {
+  const digits = value.replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '')
+  if (digits.length === 11) return digits.replace(/^(\d{2})(\d)(\d{4})(\d{4})$/, '($1) $2 $3-$4')
+  if (digits.length === 10) return digits.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3')
+  return value
+}
+
+const toPersonalData = (usuario: Usuario): PersonalData => ({
+  name: usuario.nome,
+  email: usuario.email,
+  phone: formatPhone(usuario.telefone),
+  birthDate: usuario.dataNascimento?.split('-').reverse().join('/') ?? '',
+  university: usuario.estudante
+    ? `${usuario.estudante.unidadeEnsino.instituicaoEnsino.nome} - ${usuario.estudante.unidadeEnsino.nome}`
+    : '',
+  course: usuario.estudante?.curso ?? '',
+  hometown: usuario.estudante?.cidadeOrigem?.nome ?? '',
+})
+
+// Mesmas regras do back (usuarios.schemas.ts), para o erro aparecer antes de enviar.
+const validate = (data: PersonalData) => {
+  const nextErrors: Partial<Record<keyof PersonalData, string>> = {}
+  const name = data.name.trim()
+
+  if (name.length < 2) nextErrors.name = 'Informe seu nome completo.'
+  else if (name.length > 150) nextErrors.name = 'O nome pode ter no máximo 150 caracteres.'
+
+  if (!/^[\d\s()+-]+$/.test(data.phone.trim())) {
+    nextErrors.phone = 'Use apenas números, espaços, parênteses, + e -.'
+  } else if (!/^(?:55)?[1-9]{2}\d{8,9}$/.test(data.phone.replace(/\D/g, ''))) {
+    nextErrors.phone = 'Informe DDD e telefone, ex.: (53) 9 9123-4567.'
+  }
+
+  return nextErrors
 }
 
 const MeusDados = () => {
   const router = useRouter()
-  const [personalData, setPersonalData] = useState<PersonalData>(initialPersonalData)
-  const [savedData, setSavedData] = useState<PersonalData>(initialPersonalData)
+  const [usuario, setUsuario] = useState<Usuario | null>(null)
+  const [personalData, setPersonalData] = useState<PersonalData>(emptyPersonalData)
+  const [savedData, setSavedData] = useState<PersonalData>(emptyPersonalData)
   const [errors, setErrors] = useState<Partial<Record<keyof PersonalData, string>>>({})
+  const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
+  const [saving, setSaving] = useState(false)
   const isDirty = Object.keys(personalData).some(
     key =>
       personalData[key as keyof PersonalData] !== savedData[key as keyof PersonalData]
   )
 
-  const handleSave = () => {
-    const nextErrors: Partial<Record<keyof PersonalData, string>> = {}
+  const applyUsuario = (data: Usuario) => {
+    setUsuario(data)
+    setPersonalData(toPersonalData(data))
+    setSavedData(toPersonalData(data))
+  }
 
-    if (personalData.name.trim().length < 3) {
-      nextErrors.name = 'Informe seu nome completo.'
-    }
+  useEffect(() => {
+    getUsuario()
+      .then(applyUsuario)
+      .catch(error => setFeedback({ type: 'error', text: error.message }))
+  }, [])
 
-    if (!/^\S+@\S+\.\S+$/.test(personalData.email)) {
-      nextErrors.email = 'Informe um e-mail válido.'
-    }
-
-    if (!/^\(\d{2}\)\s\d\s\d{4}-\d{4}$/.test(personalData.phone)) {
-      nextErrors.phone = 'Use o formato (00) 0 0000-0000.'
-    }
-
-    const [day, month, year] = personalData.birthDate.split('/').map(Number)
-    const birthDate = new Date(year, month - 1, day)
-    const isValidBirthDate =
-      birthDate.getFullYear() === year &&
-      birthDate.getMonth() === month - 1 &&
-      birthDate.getDate() === day &&
-      birthDate <= new Date()
-
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(personalData.birthDate) || !isValidBirthDate) {
-      nextErrors.birthDate = 'Informe uma data de nascimento válida.'
-    }
-
+  const handleSave = async () => {
+    const nextErrors = validate(personalData)
     setErrors(nextErrors)
+    setFeedback(null)
 
-    if (Object.keys(nextErrors).length === 0) {
-      setSavedData(personalData)
+    if (Object.keys(nextErrors).length > 0) return
+
+    const changes: { nome?: string; telefone?: string } = {}
+    if (personalData.name !== savedData.name) changes.nome = personalData.name.trim()
+    if (personalData.phone !== savedData.phone) changes.telefone = personalData.phone.replace(/\D/g, '')
+
+    setSaving(true)
+    try {
+      applyUsuario(await atualizarUsuario(changes))
+      setFeedback({ type: 'success', text: 'Dados atualizados com sucesso.' })
+    } catch (error) {
+      setFeedback({ type: 'error', text: (error as Error).message })
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -152,15 +195,15 @@ const MeusDados = () => {
         >
           <Image
             src={profileImage}
-            alt='Imagem de perfil de Ana Clara Silva'
+            alt={`Imagem de perfil de ${usuario?.nome ?? ''}`}
             width={80}
             height={80}
             style={{ height: '100%', objectFit: 'cover', width: '100%' }}
           />
         </Flex>
-        <Text color='blueSlate'>Estudante</Text>
+        <Text color='blueSlate'>{usuario ? perfilLabel[usuario.perfil] : ''}</Text>
         <Text fontSize='2rem' fontWeight='bold' color='prussianBlue'>
-          Ana Clara Silva
+          {usuario?.nome}
         </Text>
       </Flex>
 
@@ -188,17 +231,25 @@ const MeusDados = () => {
               aria-label={field.label}
               type={field.type ?? 'text'}
               value={personalData[field.id]}
+              readOnly={!field.editable}
+              maxLength={field.id === 'name' ? 150 : undefined}
               onChange={event => {
                 setPersonalData(currentData => ({
                   ...currentData,
                   [field.id]: event.target.value,
                 }))
                 setErrors(currentErrors => ({ ...currentErrors, [field.id]: undefined }))
+                setFeedback(null)
+              }}
+              onBlur={() => {
+                if (field.id === 'phone') {
+                  setPersonalData(currentData => ({ ...currentData, phone: formatPhone(currentData.phone) }))
+                }
               }}
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#132A4D',
+                color: field.editable ? '#132A4D' : '#64748B',
                 fontSize: '1.2rem',
                 fontWeight: 700,
                 outline: 'none',
@@ -226,6 +277,19 @@ const MeusDados = () => {
           </Flex>
         ))}
 
+        <Text color='coolSteal' variant='caption' textAlign='center'>
+          E-mail, data de nascimento e dados acadêmicos só podem ser alterados pela secretaria.
+        </Text>
+
+        {feedback && (
+          <Text
+            color={feedback.type === 'error' ? 'systemDanger' : 'systemSafe'}
+            textAlign='center'
+            role={feedback.type === 'error' ? 'alert' : 'status'}
+          >
+            {feedback.text}
+          </Text>
+        )}
       </Flex>
 
       {isDirty && (
@@ -239,6 +303,7 @@ const MeusDados = () => {
         >
           <Button
             onClick={handleSave}
+            disabled={saving}
             size='auto'
             bg='royalAzure'
             borderRadius='1.5rem'
@@ -249,7 +314,7 @@ const MeusDados = () => {
             minHeight='5.2rem'
             textTransform='none'
           >
-            Salvar alterações
+            {saving ? 'Salvando...' : 'Salvar alterações'}
           </Button>
         </Flex>
       )}

@@ -1,6 +1,6 @@
 import { A, Box, Button, Flex, Text } from '@nexpy/design-system'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 
 import Image from 'next/image'
@@ -15,24 +15,48 @@ import iconAlert from '../../../icons/iconalert.svg'
 import iconAlertConfirmed from '../../../icons/iconalertconfirmed.svg'
 
 import NoticesCard from '@/components/noticesCard/NoticesCard'
+import { getUsuario } from '@/services/api'
+import { type Aviso, listarAvisos } from '@/services/avisosService'
+import { type Viagem, alternarPresenca, listarViagens } from '@/services/viagensService'
 import TripsCard from '../../components/tripsCard/TripsCard'
 
-const totalVagas = 42
-
 const Home = () => {
-  const [isConfirmed, setIsConfirmed] = useState(false)
-  const [vagasOcupadas, setVagasOcupadas] = useState(12)
+  const [nome, setNome] = useState('')
+  const [viagens, setViagens] = useState<Viagem[]>([])
+  const [avisos, setAvisos] = useState<Aviso[]>([])
+  const [erro, setErro] = useState('')
+  const [enviando, setEnviando] = useState(false)
 
   const router = useRouter()
+
+  useEffect(() => {
+    const falhar = (error: Error) => setErro(error.message)
+    getUsuario()
+      .then(usuario => setNome(usuario.nome.split(' ')[0]))
+      .catch(falhar)
+    listarViagens()
+      .then(lista => setViagens(lista.filter(viagem => viagem.proxima)))
+      .catch(falhar)
+    listarAvisos(3).then(setAvisos).catch(falhar)
+  }, [])
+
+  const proxima = viagens[0]
+  const isConfirmed = proxima?.ativa ?? false
+  const vagasOcupadas = proxima?.occupiedSeats ?? 0
+  const totalVagas = proxima?.totalSeats ?? 0
   const porcentagem = totalVagas > 0 ? Math.min((vagasOcupadas / totalVagas) * 100, 100) : 0
 
-  const handleAttendance = () => {
-    setVagasOcupadas(currentSeats => {
-      if (isConfirmed) return Math.max(currentSeats - 1, 0)
-
-      return Math.min(currentSeats + 1, totalVagas)
-    })
-    setIsConfirmed(value => !value)
+  const handleAttendance = async () => {
+    setErro('')
+    setEnviando(true)
+    try {
+      const atualizada = await alternarPresenca(proxima)
+      setViagens(lista => lista.map(viagem => (viagem.id === atualizada.id ? atualizada : viagem)))
+    } catch (error) {
+      setErro((error as Error).message)
+    } finally {
+      setEnviando(false)
+    }
   }
 
   return (
@@ -41,7 +65,7 @@ const Home = () => {
         <Flex direction='row' w='100%' justifyContent='space-between' pt='2rem' pb='1rem'>
           <Flex direction='column' gap='0.4rem'>
             <Text fontSize='3.4rem' color='systemWhite' fontWeight='bold'>
-              Olá, Ana!
+              {nome ? `Olá, ${nome}!` : 'Olá!'}
             </Text>
             <Text fontSize='1.8rem' color='paleSlate'>
               Confira suas próximas viagens.
@@ -83,24 +107,35 @@ const Home = () => {
         position='relative'
         zIndex={1}
       >
+        {!proxima && (
+          <Text color={erro ? 'systemDanger' : 'blueSlate'} textAlign='center'>
+            {erro || 'Nenhuma viagem programada.'}
+          </Text>
+        )}
+        {proxima && (
+        <>
         <Flex direction='column' mb='2rem' gap='2rem'>
           <Flex
-            bg={isConfirmed ? 'turfeGreen' : 'ochre'}
+            bg={proxima.status === 'confirmed' ? 'turfeGreen' : 'ochre'}
             w='fit-content'
             p='0.4rem 1rem'
             borderRadius='5rem'
           >
             <Text
               variant='body'
-              color={isConfirmed ? 'systemSafe' : 'systemWarning'}
+              color={proxima.status === 'confirmed' ? 'systemSafe' : 'systemWarning'}
               fontWeight='bold'
             >
-              {isConfirmed ? 'PRESENÇA CONFIRMADA' : 'PRESENÇA PENDENTE'}
+              {proxima.status === 'confirmed'
+                ? 'PRESENÇA CONFIRMADA'
+                : proxima.emEspera
+                  ? 'NA FILA DE ESPERA'
+                  : 'PRESENÇA PENDENTE'}
             </Text>
           </Flex>
 
           <Text as='h1' fontWeight='bold'>
-            Pedro Osório Pelotas
+            {proxima.origin} → {proxima.destination}
           </Text>
         </Flex>
 
@@ -108,12 +143,12 @@ const Home = () => {
           <Flex direction='column' gap='1rem'>
             <Flex gap='0.5rem' alignItems='center'>
               <Image src={iconcalendar} alt='Calendário' width={18} height={18} />
-              <Text color='blueSlate'>12/06/2026</Text>
+              <Text color='blueSlate'>{proxima.date}</Text>
             </Flex>
 
             <Flex gap='0.5rem' alignItems='center'>
               <Image src={iconclock} alt='Relógio' width={18} height={18} />
-              <Text color='blueSlate'>07:00</Text>
+              <Text color='blueSlate'>{proxima.time}</Text>
             </Flex>
 
             <Flex gap='0.5rem' alignItems='center'>
@@ -148,8 +183,15 @@ const Home = () => {
         </Box>
 
         <Flex direction='column' mt='3rem' alignItems='center' gap='1.5rem'>
+          {erro && (
+            <Text color='systemDanger' textAlign='center' role='alert'>
+              {erro}
+            </Text>
+          )}
+          {(isConfirmed || proxima.podeConfirmar) && (
           <Button
             onClick={handleAttendance}
+            disabled={enviando}
             size='auto'
             bg={isConfirmed ? 'systemDanger' : 'royalAzure'}
             minHeight='5.5rem'
@@ -169,6 +211,7 @@ const Home = () => {
             />
             {isConfirmed ? 'Cancelar presença' : 'Confirmar presença'}
           </Button>
+          )}
 
           <Flex
             direction='row'
@@ -187,7 +230,9 @@ const Home = () => {
               />
             </Box>
             <Text color='blueSlate' fontSize='1.6rem' lineHeight='1.5' textAlign='center'>
-              {isConfirmed ? (
+              {proxima.emEspera ? (
+                'Você está na fila de espera desta viagem.'
+              ) : isConfirmed ? (
                 <>
                   Sua presença está confirmada.
                   <br />
@@ -203,6 +248,8 @@ const Home = () => {
             </Text>
           </Flex>
         </Flex>
+        </>
+        )}
       </Flex>
 
       <Flex direction='column' p='3.5rem' gap='1rem'>
@@ -223,30 +270,17 @@ const Home = () => {
           </A>
         </Flex>
         <Flex direction='column' gap='0.8rem'>
-          <TripsCard
-            status='pending'
-            destination1='Pedro Osório'
-            destination2='Pelotas'
-            date='28 de agosto (Qua)'
-            time='10:00'
-            valuePerson='10 / 42'
-          />
-          <TripsCard
-            status='confirmed'
-            destination1='Pedro Osório'
-            destination2='Pelotas'
-            date='28 de agosto (Qua)'
-            time='10:00'
-            valuePerson='10 / 42'
-          />
-          <TripsCard
-            status='canceled'
-            destination1='Pedro Osório'
-            destination2='Pelotas'
-            date='28 de agosto (Qua)'
-            time='10:00'
-            valuePerson='10 / 42'
-          />
+          {viagens.slice(1, 4).map(viagem => (
+            <TripsCard
+              key={viagem.id}
+              status={viagem.status}
+              destination1={viagem.origin}
+              destination2={viagem.destination}
+              date={viagem.date}
+              time={viagem.time}
+              valuePerson={`${viagem.occupiedSeats} / ${viagem.totalSeats}`}
+            />
+          ))}
         </Flex>
       </Flex>
 
@@ -269,27 +303,16 @@ const Home = () => {
         </Flex>
 
         <Flex direction='column' gap='0.8rem'>
-          <NoticesCard
-            status='safe'
-            mensageTitle='Viagem Segura'
-            date='20/08/2026'
-            hours='09:15'
-            mensageDescription='A viagem de hoje está ocorrendo normalmente.'
-          />
-          <NoticesCard
-            status='warning'
-            mensageTitle='Atenção'
-            date='20/08/2026'
-            hours='09:15'
-            mensageDescription='A viagem de hoje pode sofrer atrasos devido a obras na estrada.'
-          />
-          <NoticesCard
-            status='danger'
-            mensageTitle='Viagem Cancelada'
-            date='20/08/2026'
-            hours='09:15'
-            mensageDescription='A viagem de hoje foi cancelada devido a condições climáticas adversas.'
-          />
+          {avisos.map(aviso => (
+            <NoticesCard
+              key={aviso.id}
+              status={aviso.status}
+              mensageTitle={aviso.mensageTitle}
+              date={aviso.date}
+              hours={aviso.hours}
+              mensageDescription={aviso.mensageDescription}
+            />
+          ))}
         </Flex>
       </Flex>
     </Flex>

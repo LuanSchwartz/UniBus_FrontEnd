@@ -1,53 +1,25 @@
-import NoticesCard, { type NoticesCardProps } from '@/components/noticesCard/NoticesCard'
+import NoticesCard from '@/components/noticesCard/NoticesCard'
+import { type Aviso, listarAvisos } from '@/services/avisosService'
 
 import { Flex, Text } from '@nexpy/design-system'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type FiltroAvisos = 'todos' | 'importantes' | 'viagens'
 
-type Aviso = NoticesCardProps & {
-  id: number
-  categoria: 'importantes' | 'viagem'
-}
-
-const avisos: Aviso[] = [
-  {
-    id: 1,
-    status: 'warning',
-    categoria: 'viagem',
-    mensageTitle: 'Viagem extra na sexta-feira',
-    date: '20/08/2026',
-    hours: '09:15',
-    mensageDescription: 'Teremos uma viagem extra às 17:00.',
-  },
-
-  {
-    id: 2,
-    status: 'danger',
-    categoria: 'viagem',
-    mensageTitle: 'Viagem extra na sexta-feira',
-    date: '20/08/2026',
-    hours: '09:15',
-    mensageDescription: 'Teremos uma viagem extra às 17:00.',
-  },
-
-  {
-    id: 3,
-    status: 'safe',
-    categoria: 'importantes',
-    mensageTitle: 'Viagem extra na sexta-feira',
-    date: '20/08/2026',
-    hours: '09:15',
-    mensageDescription: 'Teremos uma viagem extra às 17:00.',
-  },
-]
-
 const Avisos = () => {
   const [filtro, setFiltro] = useState<FiltroAvisos>('todos')
+  const [avisos, setAvisos] = useState<Aviso[] | null>(null)
+  const [erro, setErro] = useState('')
 
-  const avisosFiltrados = avisos.filter(aviso => {
-    if (filtro === 'importantes') return aviso.categoria === 'importantes'
-    if (filtro === 'viagens') return aviso.categoria === 'viagem'
+  useEffect(() => {
+    listarAvisos()
+      .then(setAvisos)
+      .catch(error => setErro(error.message))
+  }, [])
+
+  const avisosFiltrados = (avisos ?? []).filter(aviso => {
+    if (filtro === 'importantes') return aviso.importante
+    if (filtro === 'viagens') return aviso.viagem
     return true
   })
 
@@ -122,6 +94,12 @@ const Avisos = () => {
             mensageDescription={aviso.mensageDescription}
           />
         ))}
+
+        {(erro || avisos?.length === 0 || (avisos && avisosFiltrados.length === 0)) && (
+          <Text color='blueSlate' textAlign='center' mt='2rem'>
+            {erro || 'Nenhum aviso encontrado.'}
+          </Text>
+        )}
       </Flex>
     </Flex>
   )

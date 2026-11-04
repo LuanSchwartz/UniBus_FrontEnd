@@ -1,6 +1,16 @@
 import { Button, Flex, Text } from '@nexpy/design-system'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
+import { useEffect, useState } from 'react'
+
+import {
+  type Transacao,
+  formatarData,
+  formatarHora,
+  formatarMoeda,
+  getCarteira,
+  listarTransacoes,
+} from '@/services/carteiraService'
 
 import icone_carteira from '../../../icons/icone_carteira.svg'
 import seta_cima from '../../../icons/seta_cima.svg'
@@ -10,49 +20,26 @@ import iconcalendar from '../../../icons/iconcalendar.svg'
 import iconclock from '../../../icons/iconclock.svg'
 import wallet_wave from '../../../icons/wallet_wave.svg'
 
-type TransactionStatus = 'deposit' | 'trip' | 'pending'
-
-type Transaction = {
-  title: string
-  amount: string
-  date: string
-  time: string
-  status: TransactionStatus
-}
-
-const transactions: Transaction[] = [
-  {
-    title: 'Último depósito',
-    amount: 'R$ 50,00',
-    date: '26 de ago. de 2026',
-    time: '14:32',
-    status: 'deposit',
-  },
-  {
-    title: 'Última passagem',
-    amount: 'R$ 2,00',
-    date: '25 de ago. de 2026',
-    time: '22:32',
-    status: 'trip',
-  },
-  {
-    title: 'Aguardando Confirmação',
-    amount: 'R$ 20,00',
-    date: '25 de ago. de 2026',
-    time: '22:32',
-    status: 'pending',
-  },
-]
-
 const transactionVisual = {
-  deposit: { background: 'turfeGreen', icon: seta_cima },
-  trip: { background: 'snow2', icon: seta_baixo },
-  pending: { background: 'ochre', icon: aguardando },
+  entrada: { background: 'turfeGreen', icon: seta_cima },
+  saida: { background: 'snow2', icon: seta_baixo },
+  pendente: { background: 'ochre', icon: aguardando },
+  recusada: { background: 'snow', icon: aguardando },
 } as const
 
 const Carteira = () => {
   const router = useRouter()
-  const balance = 125.5
+  const [balance, setBalance] = useState<string | null>(null)
+  const [transactions, setTransactions] = useState<Transacao[] | null>(null)
+  const [erro, setErro] = useState('')
+
+  useEffect(() => {
+    const falhar = (error: Error) => setErro(error.message)
+    getCarteira()
+      .then(carteira => setBalance(carteira.saldo))
+      .catch(falhar)
+    listarTransacoes().then(setTransactions).catch(falhar)
+  }, [])
 
   return (
     <Flex direction='column' bg='grey200' minHeight='100vh' pb='8rem'>
@@ -99,7 +86,7 @@ aproveitar todas as viagens.
               <Text color='paleSlate'>Saldo atual</Text>
             </Flex>
             <Text color='systemWhite' fontSize='3.4rem' fontWeight='bold'>
-              {balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              {balance === null ? '—' : formatarMoeda(balance)}
             </Text>
           </Flex>
           <Button
@@ -121,12 +108,28 @@ aproveitar todas as viagens.
         <Text color='prussianBlue' fontSize='1.8rem' fontWeight='bold' mt='1rem'>
           Histórico de transações
         </Text>
-        {transactions.map(transaction => {
-          const visual = transactionVisual[transaction.status]
+        {(erro || transactions?.length === 0) && (
+          <Text color={erro ? 'systemDanger' : 'blueSlate'} textAlign='center' mt='1rem'>
+            {erro || 'Nenhuma transação ainda.'}
+          </Text>
+        )}
+        {(transactions ?? []).map(transaction => {
+          const visual = transactionVisual[transaction.tipo]
+          const openReceipt = transaction.recargaId
+            ? () => router.push({ pathname: '/deposito_realizado', query: { id: transaction.recargaId } })
+            : undefined
 
           return (
             <Flex
-              key={`${transaction.title}-${transaction.date}`}
+              key={transaction.id}
+              as={openReceipt ? 'button' : 'div'}
+              type={openReceipt ? 'button' : undefined}
+              onClick={openReceipt}
+              aria-label={openReceipt ? `Ver comprovante: ${transaction.titulo}` : undefined}
+              cursor={openReceipt ? 'pointer' : 'default'}
+              border='none'
+              textAlign='left'
+              w='100%'
               direction='row'
               alignItems='center'
               bg='systemWhite'
@@ -148,19 +151,20 @@ aproveitar todas as viagens.
               </Flex>
               <Flex direction='column' gap='0.4rem'>
                 <Text color='prussianBlue' fontWeight='bold'>
-                  {transaction.title}
+                  {transaction.titulo}
                 </Text>
                 <Text color='prussianBlue' fontSize='1.8rem' fontWeight='bold'>
-                  {transaction.amount}
+                  {transaction.tipo === 'saida' ? '- ' : ''}
+                  {formatarMoeda(transaction.valor)}
                 </Text>
                 <Flex alignItems='center' gap='0.4rem'>
                   <Image src={iconcalendar} alt='' width={16} height={16} />
                   <Text color='coolSteal' variant='caption'>
-                    {transaction.date}
+                    {formatarData(transaction.criadoEm)}
                   </Text>
                   <Image src={iconclock} alt='' width={16} height={16} />
                   <Text color='coolSteal' variant='caption'>
-                    {transaction.time}
+                    {formatarHora(transaction.criadoEm)}
                   </Text>
                 </Flex>
               </Flex>
