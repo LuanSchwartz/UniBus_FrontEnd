@@ -1,9 +1,17 @@
 import { Flex, Text } from '@nexpy/design-system'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ChangeEvent, type ReactNode, useEffect, useRef, useState } from 'react'
 
-import { type Usuario, getUsuario, perfilLabel } from '@/services/api'
+import {
+  FOTO_MAX_BYTES,
+  type Usuario,
+  enviarFotoPerfil,
+  getFotoPerfil,
+  getUsuario,
+  perfilLabel,
+  removerFotoPerfil,
+} from '@/services/api'
 
 import iconArrowRight from '../../../icons/iconarrow.svg'
 import iconPerson from '../../../icons/iconPerson.svg'
@@ -113,10 +121,61 @@ const profileOptions: ProfileOption[] = [
 const Perfil = () => {
   const router = useRouter()
   const [usuario, setUsuario] = useState<Usuario | null>(null)
+  const [foto, setFoto] = useState<string | null>(null)
+  const [enviandoFoto, setEnviandoFoto] = useState(false)
+  const [mensagemFoto, setMensagemFoto] = useState<{ erro: boolean; texto: string } | null>(null)
+  const seletorFoto = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    getUsuario().then(setUsuario).catch(() => undefined)
+    getUsuario()
+      .then(dados => {
+        setUsuario(dados)
+        if (dados.fotoUrl) getFotoPerfil().then(setFoto).catch(() => undefined)
+      })
+      .catch(() => undefined)
   }, [])
+
+  // Libera a imagem anterior da memória quando a foto muda.
+  useEffect(() => () => { if (foto) URL.revokeObjectURL(foto) }, [foto])
+
+  const trocarFoto = async (evento: ChangeEvent<HTMLInputElement>) => {
+    const arquivo = evento.target.files?.[0]
+    evento.target.value = ''
+    if (!arquivo) return
+    if (!['image/jpeg', 'image/png'].includes(arquivo.type)) {
+      setMensagemFoto({ erro: true, texto: 'Escolha uma foto JPG ou PNG.' })
+      return
+    }
+    if (arquivo.size > FOTO_MAX_BYTES) {
+      setMensagemFoto({ erro: true, texto: 'A foto deve ter no máximo 5 MB.' })
+      return
+    }
+    setEnviandoFoto(true)
+    setMensagemFoto(null)
+    try {
+      await enviarFotoPerfil(arquivo)
+      setFoto(await getFotoPerfil())
+      setMensagemFoto({ erro: false, texto: 'Foto atualizada.' })
+    } catch (error) {
+      setMensagemFoto({ erro: true, texto: (error as Error).message })
+    } finally {
+      setEnviandoFoto(false)
+    }
+  }
+
+  const removerFoto = async () => {
+    setEnviandoFoto(true)
+    setMensagemFoto(null)
+    try {
+      await removerFotoPerfil()
+      setFoto(null)
+      setMensagemFoto({ erro: false, texto: 'Foto removida.' })
+    } catch (error) {
+      setMensagemFoto({ erro: true, texto: (error as Error).message })
+    } finally {
+      setEnviandoFoto(false)
+    }
+  }
 
   return (
     <Flex direction='column' bg='grey200' minHeight='100vh' pb='8rem'>
@@ -126,25 +185,99 @@ const Perfil = () => {
         </Text>
 
         <Flex direction='column' alignItems='center' gap='0.6rem' mt='2.5rem'>
-          <Flex
-            w='8rem'
-            h='8rem'
-            minWidth='8rem'
-            minHeight='8rem'
-            borderRadius='50%'
-            alignItems='center'
-            justifyContent='center'
-            bg='grey100'
-            style={{ overflow: 'hidden' }}
+          <button
+            type='button'
+            aria-label={foto ? 'Trocar foto de perfil' : 'Adicionar foto de perfil'}
+            disabled={enviandoFoto}
+            onClick={() => seletorFoto.current?.click()}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: enviandoFoto ? 'wait' : 'pointer',
+              padding: 0,
+              position: 'relative',
+            }}
           >
-            <Image
-              src={foto_perfil}
-              alt='Imagem do perfil'
-              width={80}
-              height={80}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
+            <Flex
+              w='8rem'
+              h='8rem'
+              minWidth='8rem'
+              minHeight='8rem'
+              borderRadius='50%'
+              alignItems='center'
+              justifyContent='center'
+              bg='grey100'
+              style={{ opacity: enviandoFoto ? 0.5 : 1, overflow: 'hidden' }}
+            >
+              {/* A foto vem como blob local; o otimizador de imagens do Next não se aplica. */}
+              {foto ? (
+                <img src={foto} alt='Sua foto de perfil' style={{ height: '100%', objectFit: 'cover', width: '100%' }} />
+              ) : (
+                <Image
+                  src={foto_perfil}
+                  alt='Imagem do perfil'
+                  width={80}
+                  height={80}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              )}
+            </Flex>
+            <span
+              aria-hidden
+              style={{
+                alignItems: 'center',
+                background: '#2563EB',
+                border: '2px solid #FFFFFF',
+                borderRadius: '50%',
+                bottom: 0,
+                color: '#FFFFFF',
+                display: 'flex',
+                fontSize: '1.3rem',
+                height: '2.6rem',
+                justifyContent: 'center',
+                position: 'absolute',
+                right: 0,
+                width: '2.6rem',
+              }}
+            >
+              ✎
+            </span>
+          </button>
+          <input
+            ref={seletorFoto}
+            type='file'
+            accept='image/jpeg,image/png'
+            onChange={trocarFoto}
+            style={{ display: 'none' }}
+          />
+          <Flex gap='1.2rem' alignItems='center'>
+            <button
+              type='button'
+              disabled={enviandoFoto}
+              onClick={() => seletorFoto.current?.click()}
+              style={{ background: 'transparent', border: 'none', color: '#2563EB', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold', padding: 0 }}
+            >
+              {enviandoFoto ? 'Enviando...' : foto ? 'Trocar foto' : 'Adicionar foto'}
+            </button>
+            {foto && !enviandoFoto && (
+              <button
+                type='button'
+                onClick={removerFoto}
+                style={{ background: 'transparent', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: '1.2rem', padding: 0 }}
+              >
+                Remover
+              </button>
+            )}
           </Flex>
+          {mensagemFoto && (
+            <Text
+              role={mensagemFoto.erro ? 'alert' : 'status'}
+              color={mensagemFoto.erro ? 'systemDanger' : 'systemSafe'}
+              variant='caption'
+            >
+              {mensagemFoto.texto}
+            </Text>
+          )}
           <Text color='blueSlate'>{usuario ? perfilLabel[usuario.perfil] : ''}</Text>
           <Text fontSize='2rem' fontWeight='bold' color='prussianBlue'>
             {usuario?.nome}

@@ -22,11 +22,11 @@ type Opcao = { id: string; nome: string }
 
 export type OpcoesPreferencias = { rotas: Opcao[]; cidades: Opcao[] }
 
-export type Preferencias = { rotaIds: string[]; cidadeIds: string[]; turnos: Turno[] }
+export type Preferencias = { rotaIds: string[]; cidadeIds: string[]; turnos: Turno[]; rotas: Opcao[] }
 
 export const getOpcoesPreferencias = () => api<OpcoesPreferencias>('/preferencias/opcoes')
 
 export const getPreferencias = () => api<Preferencias>('/preferencias/me')
 
-export const atualizarPreferencias = (dados: Partial<Preferencias>) =>
+export const atualizarPreferencias = (dados: Partial<Omit<Preferencias, 'rotas'>>) =>
   api<Preferencias>('/preferencias/me', { method: 'PATCH', body: dados })

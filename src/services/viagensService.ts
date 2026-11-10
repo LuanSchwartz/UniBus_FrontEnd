@@ -1,4 +1,7 @@
 import { api, getUsuario } from './api'
+import type { Sentido } from '@/components/sentidoTag/SentidoTag'
+
+import type { Preferencias, Turno } from './preferenciasService'
 
 type Parada = { id: string; nome: string; cidade: string; ordem: number }
 
@@ -11,10 +14,15 @@ type Participacao = {
 type Trecho = {
   id: string
   status: string
+  sentido: Sentido
   saidaPrevistaEm: string
+  chegadaPrevistaEm: string
+  limiteConfirmacaoEm: string
+  limiteCancelamentoEm: string
+  inscricoesSuspensas?: boolean
   capacidade: number | null
   capacidadeExtra: number | null
-  viagem: { nomeRota: string }
+  viagem: { nomeRota: string; turno: Turno }
   paradas: Parada[]
   _count: { participacoes: number }
   minhaParticipacao?: Participacao | null
@@ -27,7 +35,15 @@ export type Viagem = {
   origin: string
   destination: string
   date: string
+  // Dia da saída no fuso de Pedro Osório, no formato AAAA-MM-DD.
+  dia: string
+  turno: Turno
+  rota: string
+  sentido: Sentido
   time: string
+  arrivalTime: string
+  // Horário-limite para confirmar presença (1 h antes da saída).
+  limite: string
   occupiedSeats: number
   totalSeats: number
   boarding: string
@@ -38,9 +54,13 @@ export type Viagem = {
   participacaoId?: string
   ativa: boolean
   emEspera: boolean
+  // Motivo para o botão de presença ficar desabilitado; null quando a ação ainda é permitida.
+  bloqueio: string | null
 }
 
 const timeZone = 'America/Sao_Paulo'
+
+export const diaLocal = (data: Date) => data.toLocaleDateString('en-CA', { timeZone })
 const LIMITE = 100
 
 // A API devolve arrays sem total e a listagem começa pelas viagens mais antigas.
@@ -57,6 +77,26 @@ const formatarData = (data: Date) => {
   const dia = data.toLocaleDateString('pt-BR', { timeZone, day: 'numeric', month: 'long' })
   const semana = data.toLocaleDateString('pt-BR', { timeZone, weekday: 'short' }).replace('.', '')
   return `${dia} (${semana[0].toUpperCase()}${semana.slice(1)})`
+}
+
+const hora = (iso: string) =>
+  new Date(iso).toLocaleTimeString('pt-BR', { timeZone, hour: '2-digit', minute: '2-digit' })
+
+// Espelha as regras do back: confirmar até 1 h antes com o trecho aberto; cancelar até o mesmo limite
+// (quem está na fila de espera pode sair até a saída).
+const motivoBloqueio = (trecho: Trecho, ativa: boolean, emEspera: boolean, agora: Date) => {
+  if (trecho.status === 'CANCELADO') return 'Viagem cancelada'
+  if (trecho.status === 'CONCLUIDO') return 'Viagem concluída'
+  if (trecho.status === 'EM_ANDAMENTO') return 'Viagem em andamento'
+  if (ativa) {
+    const limite = emEspera ? trecho.saidaPrevistaEm : trecho.limiteCancelamentoEm
+    return agora > new Date(limite) || (!emEspera && trecho.inscricoesSuspensas)
+      ? `Cancelamento encerrado às ${hora(limite)}`
+      : null
+  }
+  return trecho.status !== 'ABERTO' || trecho.inscricoesSuspensas || agora > new Date(trecho.limiteConfirmacaoEm)
+    ? `Confirmações encerradas às ${hora(trecho.limiteConfirmacaoEm)}`
+    : null
 }
 
 const paraViagem = (trecho: Trecho, participacao?: Participacao | null): Viagem => {
@@ -82,7 +122,13 @@ const paraViagem = (trecho: Trecho, participacao?: Participacao | null): Viagem 
     origin: origem?.cidade ?? '',
     destination: destino?.cidade ?? '',
     date: formatarData(saida),
+    dia: diaLocal(saida),
+    turno: trecho.viagem.turno,
+    rota: trecho.viagem.nomeRota,
+    sentido: trecho.sentido,
     time: saida.toLocaleTimeString('pt-BR', { timeZone, hour: '2-digit', minute: '2-digit' }),
+    limite: hora(trecho.limiteConfirmacaoEm),
+    arrivalTime: new Date(trecho.chegadaPrevistaEm).toLocaleTimeString('pt-BR', { timeZone, hour: '2-digit', minute: '2-digit' }),
     occupiedSeats: trecho._count.participacoes,
     totalSeats: (trecho.capacidade ?? 0) + (trecho.capacidadeExtra ?? 0),
     boarding: origem?.nome ?? '',
@@ -93,7 +139,18 @@ const paraViagem = (trecho: Trecho, participacao?: Participacao | null): Viagem 
     participacaoId: participacao?.id,
     ativa: trecho.status !== 'CANCELADO' && (confirmada || emEspera),
     emEspera,
+    bloqueio: motivoBloqueio(trecho, confirmada || emEspera, emEspera, agora),
   }
+}
+
+// Lista vazia de turnos ou rotas nas preferências quer dizer "qualquer um".
+export const combinaComPreferencias = (viagem: Viagem, preferencias: Preferencias | null) => {
+  const turnos = preferencias?.turnos ?? []
+  const rotas = (preferencias?.rotas ?? []).map(rota => rota.nome)
+  return (
+    (turnos.length === 0 || turnos.includes(viagem.turno)) &&
+    (rotas.length === 0 || rotas.includes(viagem.rota))
+  )
 }
 
 export const listarViagens = async () => {
