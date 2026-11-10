@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 
+import SentidoTag from '@/components/sentidoTag/SentidoTag'
 import { type Viagem, alternarPresenca, obterViagem } from '@/services/viagensService'
 
 import iconCalendar from '../../../icons/iconcalendar.svg'
@@ -59,7 +60,12 @@ const DetalhesViagem = () => {
 
   const isActive = trip.ativa
   const occupiedSeats = trip.occupiedSeats
-  const visual = statusConfig[trip.status]
+  const visual =
+    trip.bloqueio === 'Viagem em andamento'
+      ? { label: trip.bloqueio, background: 'aliceBlue', color: 'royalAzure' }
+      : trip.status === 'pending' && trip.bloqueio
+        ? { label: trip.bloqueio, background: 'grey100', color: 'grey500' }
+        : statusConfig[trip.status]
   const occupancy = trip.totalSeats > 0 ? Math.min((occupiedSeats / trip.totalSeats) * 100, 100) : 0
 
   const handleAttendance = async () => {
@@ -115,6 +121,7 @@ const DetalhesViagem = () => {
           </Flex>
 
           <Flex direction='column' gap='1.5rem' p='2rem'>
+            <SentidoTag sentido={trip.sentido} />
             <Text fontSize='2.4rem' fontWeight='bold' color='prussianBlue'>
               {trip.origin} → {trip.destination}
             </Text>
@@ -209,9 +216,9 @@ const DetalhesViagem = () => {
         )}
         <Button
           onClick={handleAttendance}
-          disabled={enviando}
+          disabled={enviando || Boolean(trip.bloqueio)}
           size='auto'
-          bg={isActive ? 'systemDanger' : 'royalAzure'}
+          bg={trip.bloqueio ? 'grey300' : isActive ? 'systemDanger' : 'royalAzure'}
           borderRadius='1.6rem'
           color='systemWhite'
           flex={1}
@@ -222,8 +229,10 @@ const DetalhesViagem = () => {
           fontWeight='bold'
           textTransform='none'
         >
-          <Image src={isActive ? iconCancel : iconConfirmed} alt='' width={24} height={24} />
-          {isActive ? 'Cancelar presença' : 'Confirmar presença'}
+          {!trip.bloqueio && (
+            <Image src={isActive ? iconCancel : iconConfirmed} alt='' width={24} height={24} />
+          )}
+          {trip.bloqueio ?? (isActive ? 'Cancelar presença' : 'Confirmar presença')}
         </Button>
       </Flex>
       )}

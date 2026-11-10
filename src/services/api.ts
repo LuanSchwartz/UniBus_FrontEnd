@@ -6,13 +6,15 @@ export const clearToken = () => localStorage.removeItem(TOKEN_KEY)
 
 export const api = async <T>(path: string, options: { method?: string; body?: unknown } = {}) => {
   const token = getToken()
+  // FormData (envio de arquivo) vai como multipart; o navegador define o Content-Type.
+  const multipart = options.body instanceof FormData
   const res = await fetch(`/api/v1${path}`, {
     method: options.method ?? 'GET',
     headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.body && !multipart ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: multipart ? (options.body as FormData) : options.body ? JSON.stringify(options.body) : undefined,
   })
 
   if (res.status === 204) return undefined as T
@@ -49,6 +51,7 @@ export type Usuario = {
   telefone: string
   perfil: 'ESTUDANTE' | 'MOTORISTA' | 'OPERADOR'
   dataNascimento: string | null
+  fotoUrl: string | null
   estudante: {
     curso: string | null
     cidadeOrigem: { nome: string } | null
@@ -63,3 +66,20 @@ export const getUsuario = () => api<Usuario>('/usuarios/me')
 // O back só permite ao próprio usuário alterar nome e telefone; o resto é feito pelo operador.
 export const atualizarUsuario = (dados: { nome?: string; telefone?: string }) =>
   api<Usuario>('/usuarios/me', { method: 'PATCH', body: dados })
+
+// A foto é privada: a rota exige o token, então não dá para usar a URL direto num <img>.
+export const getFotoPerfil = async () => {
+  const res = await fetch('/api/v1/usuarios/me/foto', { headers: { Authorization: `Bearer ${getToken()}` } })
+  return res.ok ? URL.createObjectURL(await res.blob()) : null
+}
+
+export const FOTO_MAX_BYTES = 5 * 1024 * 1024
+
+export const enviarFotoPerfil = (arquivo: File) => {
+  const form = new FormData()
+  form.set('foto', arquivo)
+  return api<{ fotoUrl: string | null }>('/usuarios/me/foto', { method: 'PUT', body: form })
+}
+
+export const removerFotoPerfil = () =>
+  api<{ fotoUrl: string | null }>('/usuarios/me/foto', { method: 'DELETE' })

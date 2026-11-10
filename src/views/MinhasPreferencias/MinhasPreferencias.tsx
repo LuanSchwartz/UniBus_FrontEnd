@@ -1,7 +1,7 @@
 import { Flex, Text } from '@nexpy/design-system'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 
 import {
   type OpcoesPreferencias,
@@ -12,33 +12,117 @@ import {
   getPreferencias,
 } from '@/services/preferenciasService'
 
+import icone_horario from '../../../icons/icone_horario.svg'
 import icone_pref from '../../../icons/icone_pref.svg'
 import icone_seta from '../../../icons/icone_seta.svg'
 
-const turnos: [Turno, string][] = [
-  ['MANHA', 'Manhã (05:45 - 14:00)'],
-  ['TARDE', 'Tarde (11:50 - 20:00)'],
-  ['NOITE', 'Noite (17:20 - 23:00)'],
+const turnos: { valor: Turno; nome: string; horario: string }[] = [
+  { valor: 'MANHA', nome: 'Manhã', horario: '05:45 - 14:00' },
+  { valor: 'TARDE', nome: 'Tarde', horario: '11:50 - 20:00' },
+  { valor: 'NOITE', nome: 'Noite', horario: '17:20 - 00:00' },
 ]
 
-const cardStyle = {
-  alignItems: 'center',
-  background: '#fff',
-  border: '1px solid #CBD5E1',
-  borderRadius: '1.2rem',
-  cursor: 'pointer',
-  display: 'flex',
-  justifyContent: 'space-between',
-  padding: '1.4rem',
-} as const
+type CampoLista = 'turnos' | 'rotaIds' | 'cidadeIds'
 
-const checkboxStyle = { accentColor: '#2563EB', height: '1.8rem', width: '1.8rem' }
+const Marcador = ({ ativo }: { ativo: boolean }) => (
+  <span
+    aria-hidden
+    style={{
+      alignItems: 'center',
+      background: ativo ? '#2563EB' : '#FFFFFF',
+      border: `2px solid ${ativo ? '#2563EB' : '#CBD5E1'}`,
+      borderRadius: '50%',
+      color: '#FFFFFF',
+      display: 'flex',
+      flexShrink: 0,
+      fontSize: '1.1rem',
+      fontWeight: 'bold',
+      height: '2rem',
+      justifyContent: 'center',
+      width: '2rem',
+    }}
+  >
+    {ativo ? '✓' : ''}
+  </span>
+)
+
+const opcaoStyle = (ativo: boolean) =>
+  ({
+    alignItems: 'center',
+    background: ativo ? '#EFF6FF' : '#FFFFFF',
+    border: `1.5px solid ${ativo ? '#2563EB' : '#E2E8F0'}`,
+    borderRadius: '1.4rem',
+    cursor: 'pointer',
+    display: 'flex',
+    gap: '1.2rem',
+    padding: '1.4rem',
+    textAlign: 'left',
+    transition: 'all 0.15s ease',
+    width: '100%',
+  }) as const
+
+type SecaoProps = {
+  icone: string
+  iconeFundo: string
+  titulo: string
+  descricao: string
+  selecionadas: number
+  children: ReactNode
+}
+
+const Secao = ({ icone, iconeFundo, titulo, descricao, selecionadas, children }: SecaoProps) => (
+  <Flex
+    bg='systemWhite'
+    borderRadius='1.8rem'
+    boxShadow='0 4px 12px rgba(21, 28, 42, 0.06)'
+    direction='column'
+    gap='1.4rem'
+    p='1.8rem'
+  >
+    <Flex alignItems='center' gap='1.2rem'>
+      <Flex
+        alignItems='center'
+        borderRadius='1rem'
+        h='3.6rem'
+        justifyContent='center'
+        minWidth='3.6rem'
+        style={{ backgroundColor: iconeFundo }}
+        w='3.6rem'
+      >
+        <Image src={icone} alt='' width={18} height={18} />
+      </Flex>
+      <Flex direction='column' flex={1} gap='0.2rem'>
+        <Text color='prussianBlue' fontWeight='bold'>
+          {titulo}
+        </Text>
+        <Text color='blueSlate' variant='caption'>
+          {descricao}
+        </Text>
+      </Flex>
+      <Text
+        color={selecionadas ? 'royalAzure' : 'blueSlate'}
+        fontSize='1.1rem'
+        fontWeight='bold'
+        style={{
+          background: selecionadas ? '#E7F0FF' : '#F1F5F9',
+          borderRadius: '2rem',
+          padding: '0.4rem 1rem',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {selecionadas ? `${selecionadas} ${selecionadas === 1 ? 'marcada' : 'marcadas'}` : 'Todas'}
+      </Text>
+    </Flex>
+    {children}
+  </Flex>
+)
 
 const MinhasPreferencias = () => {
   const router = useRouter()
   const [opcoes, setOpcoes] = useState<OpcoesPreferencias | null>(null)
   const [preferencias, setPreferencias] = useState<Preferencias | null>(null)
   const [erro, setErro] = useState('')
+  const [situacao, setSituacao] = useState<'' | 'salvando' | 'salvo'>('')
 
   useEffect(() => {
     Promise.all([getOpcoesPreferencias(), getPreferencias()])
@@ -50,20 +134,26 @@ const MinhasPreferencias = () => {
   }, [])
 
   // Salva a cada toque; se o back recusar, a lista volta ao valor anterior.
-  const toggle = async <K extends keyof Preferencias>(campo: K, valor: Preferencias[K][number]) => {
+  const toggle = async (campo: CampoLista, valor: string) => {
     if (!preferencias) return
     const anterior = preferencias
-    const lista = anterior[campo] as string[]
+    const lista: string[] = anterior[campo]
     const nova = lista.includes(valor) ? lista.filter(item => item !== valor) : [...lista, valor]
     setErro('')
+    setSituacao('salvando')
     setPreferencias({ ...anterior, [campo]: nova })
     try {
       setPreferencias(await atualizarPreferencias({ [campo]: nova }))
+      setSituacao('salvo')
     } catch (error) {
       setPreferencias(anterior)
       setErro((error as Error).message)
+      setSituacao('')
     }
   }
+
+  const marcado = (campo: CampoLista, valor: string) =>
+    Boolean((preferencias?.[campo] as string[] | undefined)?.includes(valor))
 
   return (
     <Flex direction='column' bg='grey200' minHeight='100vh' pb='10rem'>
@@ -95,106 +185,133 @@ const MinhasPreferencias = () => {
           Minhas preferências
         </Text>
       </Flex>
-      <Flex direction='column' alignItems='center' p='1.2rem 2rem 2.4rem'>
-        <Text color='blueSlate' variant='caption' textAlign='center'>
-          Defina suas rotas,
-          <br />
-          horários e outras preferências.
-        </Text>
-      </Flex>
-      <Flex direction='column' gap='2.4rem' px='2rem'>
-        {(erro || !preferencias) && (
-          <Text color={erro ? 'systemDanger' : 'blueSlate'} textAlign='center' role='alert'>
-            {erro || 'Carregando...'}
+
+      <Flex direction='column' gap='1.6rem' p='2rem'>
+        <Flex bg='aliceBlue' borderRadius='1.6rem' direction='column' gap='0.4rem' p='1.6rem'>
+          <Text color='royalAzure' fontWeight='bold'>
+            Personalize suas viagens
           </Text>
-        )}
-        <Flex direction='column' gap='0.8rem'>
-          <Flex direction='column'>
-            <Text color='prussianBlue' fontWeight='bold'>
-              Cidades favoritas
-            </Text>
-            <Text color='blueSlate' variant='caption'>
-              Selecione as cidades que você mais utiliza.
-            </Text>
-          </Flex>
-          {(opcoes?.cidades ?? []).map(cidade => (
-            <label key={cidade.id} style={cardStyle}>
-              <Image
-                src={icone_pref}
-                alt='Ícone de preferência'
-                width={16}
-                height={16}
-              />
-              <Text color='prussianBlue' flex={1} ml='1.2rem' fontWeight='bold'>
-                {cidade.nome}
-              </Text>
-              <input
-                type='checkbox'
-                checked={Boolean(preferencias?.cidadeIds.includes(cidade.id))}
-                disabled={!preferencias}
-                onChange={() => toggle('cidadeIds', cidade.id)}
-                style={checkboxStyle}
-              />
-            </label>
-          ))}
+          <Text color='blueSlate' variant='caption' lineHeight='1.4'>
+            A tela de Viagens mostra só os horários e rotas que você marcar aqui. Se não marcar nada
+            em uma seção, todas aparecem.
+          </Text>
         </Flex>
-        <Flex direction='column' gap='0.8rem'>
-          <Flex direction='column'>
-            <Text color='prussianBlue' fontWeight='bold'>
-              Horários preferidos
-            </Text>
-            <Text color='blueSlate' variant='caption'>
-              Selecione os períodos que mais viaja.
-            </Text>
+
+        <Text
+          aria-live='polite'
+          color={erro ? 'systemDanger' : 'blueSlate'}
+          textAlign='center'
+          variant='caption'
+          role={erro ? 'alert' : undefined}
+        >
+          {erro ||
+            (!preferencias
+              ? 'Carregando...'
+              : situacao === 'salvando'
+                ? 'Salvando...'
+                : situacao === 'salvo'
+                  ? '✓ Preferências salvas'
+                  : '')}
+        </Text>
+
+        <Secao
+          icone={icone_horario}
+          iconeFundo='#FFF0DE'
+          titulo='Horários preferidos'
+          descricao='Os turnos em que você costuma viajar.'
+          selecionadas={preferencias?.turnos.length ?? 0}
+        >
+          <Flex direction='column' gap='0.8rem'>
+            {turnos.map(turno => {
+              const ativo = marcado('turnos', turno.valor)
+              return (
+                <button
+                  key={turno.valor}
+                  type='button'
+                  aria-pressed={ativo}
+                  disabled={!preferencias}
+                  onClick={() => toggle('turnos', turno.valor)}
+                  style={opcaoStyle(ativo)}
+                >
+                  <Flex direction='column' flex={1} gap='0.2rem'>
+                    <Text color='prussianBlue' fontWeight='bold'>
+                      {turno.nome}
+                    </Text>
+                    <Text color='blueSlate' variant='caption'>
+                      {turno.horario}
+                    </Text>
+                  </Flex>
+                  <Marcador ativo={ativo} />
+                </button>
+              )
+            })}
           </Flex>
-          {turnos.map(([key, label]) => (
-            <label
-              key={key}
-              style={{
-                alignItems: 'center',
-                cursor: 'pointer',
-                display: 'flex',
-                gap: '1rem',
-              }}
-            >
-              <input
-                type='checkbox'
-                checked={Boolean(preferencias?.turnos.includes(key))}
-                disabled={!preferencias}
-                onChange={() => toggle('turnos', key)}
-                style={checkboxStyle}
-              />
-              <Text color='prussianBlue' fontWeight='bold' variant='caption'>
-                {label}
-              </Text>
-            </label>
-          ))}
-        </Flex>
-        <Flex direction='column' gap='0.8rem'>
-          <Flex direction='column'>
-            <Text color='prussianBlue' fontWeight='bold'>
-              Rotas favoritas
-            </Text>
-            <Text color='blueSlate' variant='caption'>
-              Selecione as rotas que você mais utiliza.
-            </Text>
+        </Secao>
+
+        <Secao
+          icone={icone_seta}
+          iconeFundo='#E7F0FF'
+          titulo='Rotas favoritas'
+          descricao='As rotas que você mais utiliza.'
+          selecionadas={preferencias?.rotaIds.length ?? 0}
+        >
+          <Flex direction='column' gap='0.8rem'>
+            {(opcoes?.rotas ?? []).map(rota => {
+              const ativo = marcado('rotaIds', rota.id)
+              return (
+                <button
+                  key={rota.id}
+                  type='button'
+                  aria-pressed={ativo}
+                  disabled={!preferencias}
+                  onClick={() => toggle('rotaIds', rota.id)}
+                  style={opcaoStyle(ativo)}
+                >
+                  <Text color='prussianBlue' flex={1} fontWeight='bold'>
+                    {rota.nome}
+                  </Text>
+                  <Marcador ativo={ativo} />
+                </button>
+              )
+            })}
           </Flex>
-          {(opcoes?.rotas ?? []).map(rota => (
-            <label key={rota.id} style={cardStyle}>
-              <Image src={icone_seta} alt='Ícone de preferência' width={16} height={16} />
-              <Text color='prussianBlue' flex={1} ml='1.2rem' fontWeight='bold'>
-                {rota.nome}
-              </Text>
-              <input
-                type='checkbox'
-                checked={Boolean(preferencias?.rotaIds.includes(rota.id))}
-                disabled={!preferencias}
-                onChange={() => toggle('rotaIds', rota.id)}
-                style={checkboxStyle}
-              />
-            </label>
-          ))}
-        </Flex>
+        </Secao>
+
+        <Secao
+          icone={icone_pref}
+          iconeFundo='#DDF8EE'
+          titulo='Cidades favoritas'
+          descricao='As cidades por onde você mais passa.'
+          selecionadas={preferencias?.cidadeIds.length ?? 0}
+        >
+          <Flex gap='0.8rem' style={{ flexWrap: 'wrap' }}>
+            {(opcoes?.cidades ?? []).map(cidade => {
+              const ativo = marcado('cidadeIds', cidade.id)
+              return (
+                <button
+                  key={cidade.id}
+                  type='button'
+                  aria-pressed={ativo}
+                  disabled={!preferencias}
+                  onClick={() => toggle('cidadeIds', cidade.id)}
+                  style={{
+                    background: ativo ? '#2563EB' : '#FFFFFF',
+                    border: `1.5px solid ${ativo ? '#2563EB' : '#E2E8F0'}`,
+                    borderRadius: '2rem',
+                    color: ativo ? '#FFFFFF' : '#132A4D',
+                    cursor: 'pointer',
+                    fontSize: '1.3rem',
+                    fontWeight: 'bold',
+                    padding: '0.8rem 1.6rem',
+                  }}
+                >
+                  {ativo ? '✓ ' : ''}
+                  {cidade.nome}
+                </button>
+              )
+            })}
+          </Flex>
+        </Secao>
       </Flex>
     </Flex>
   )
