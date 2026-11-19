@@ -1,9 +1,11 @@
-import { api, getUsuario } from './api'
+import { api, emCache, getUsuario, limparCache } from './api'
 import type { Sentido } from '@/components/sentidoTag/SentidoTag'
 
 import type { Preferencias, Turno } from './preferenciasService'
 
-type Parada = { id: string; nome: string; cidade: string; ordem: number }
+type Parada = { id: string; nome: string; cidade: string; ordem: number; endereco?: string | null; referencia?: string | null }
+
+type Veiculo = { identificacao: string; placa: string; tipo: 'ONIBUS' | 'VAN' }
 
 type Participacao = {
   id: string
@@ -26,6 +28,12 @@ type Trecho = {
   paradas: Parada[]
   _count: { participacoes: number }
   minhaParticipacao?: Participacao | null
+  // Só no detalhe do trecho.
+  tarifa?: string
+  motorista?: { usuario: { nome: string } } | null
+  motoristaExtra?: { usuario: { nome: string } } | null
+  veiculo?: Veiculo | null
+  veiculoExtra?: Veiculo | null
 }
 
 export type Viagem = {
@@ -153,7 +161,9 @@ export const combinaComPreferencias = (viagem: Viagem, preferencias: Preferencia
   )
 }
 
-export const listarViagens = async () => {
+export const listarViagens = () => emCache('viagens', buscarViagens)
+
+const buscarViagens = async () => {
   const [trechos, usuario] = await Promise.all([
     todasPaginas<Trecho>('/operacao/trechos'),
     getUsuario(),
@@ -170,21 +180,63 @@ export const listarViagens = async () => {
   )
 }
 
-export const obterViagem = async (id: string) => {
+export type DetalheViagem = Viagem & {
+  dataCompleta: string
+  duracao: string
+  tarifa: string
+  cancelamentoAte: string
+  paradas: Parada[]
+  transporte: { veiculo: Veiculo; motorista: string | null; extra: boolean }[]
+}
+
+const duracao = (inicio: string, fim: string) => {
+  const minutos = Math.round((new Date(fim).getTime() - new Date(inicio).getTime()) / 60000)
+  const horas = Math.floor(minutos / 60)
+  return [horas && `${horas} h`, minutos % 60 && `${minutos % 60} min`].filter(Boolean).join(' ') || '0 min'
+}
+
+export const obterViagem = async (id: string): Promise<DetalheViagem> => {
   const trecho = await api<Trecho>(`/operacao/trechos/${id}`)
-  return paraViagem(trecho, trecho.minhaParticipacao)
+  const saida = new Date(trecho.saidaPrevistaEm)
+  const dataCompleta = saida.toLocaleDateString('pt-BR', { timeZone, weekday: 'long', day: 'numeric', month: 'long' })
+  return {
+    ...paraViagem(trecho, trecho.minhaParticipacao),
+    dataCompleta: dataCompleta[0].toUpperCase() + dataCompleta.slice(1),
+    duracao: duracao(trecho.saidaPrevistaEm, trecho.chegadaPrevistaEm),
+    tarifa: trecho.tarifa ?? '2.00',
+    cancelamentoAte: hora(trecho.limiteCancelamentoEm),
+    paradas: trecho.paradas,
+    transporte: [
+      trecho.veiculo && { veiculo: trecho.veiculo, motorista: trecho.motorista?.usuario.nome ?? null, extra: false },
+      trecho.veiculoExtra && { veiculo: trecho.veiculoExtra, motorista: trecho.motoristaExtra?.usuario.nome ?? null, extra: true },
+    ].filter(item => item !== null && item !== undefined),
+  }
 }
 
 // Confirmar cobra a tarifa na carteira; cancelar dentro do prazo estorna. Sem saldo, entra em espera.
 // shortcut: inscreve da primeira à última parada, criar seleção de pontos quando houver paradas intermediárias.
-export const alternarPresenca = async (viagem: Viagem) => {
-  if (viagem.ativa && viagem.participacaoId) {
-    await api(`/operacao/participacoes/${viagem.participacaoId}/cancelar`, { method: 'POST' })
-  } else {
-    await api(`/operacao/trechos/${viagem.id}/inscricoes`, {
-      method: 'POST',
-      body: { origemId: viagem.origemId, destinoId: viagem.destinoId },
-    })
+export const alternarPresenca = async <T extends Viagem>(viagem: T): Promise<T> => {
+  const participacao =
+    viagem.ativa && viagem.participacaoId
+      ? await api<Participacao>(`/operacao/participacoes/${viagem.participacaoId}/cancelar`, { method: 'POST' })
+      : await api<Participacao>(`/operacao/trechos/${viagem.id}/inscricoes`, {
+          method: 'POST',
+          body: { origemId: viagem.origemId, destinoId: viagem.destinoId },
+        })
+  // Confirmar ou cancelar muda a lista de viagens e o saldo da carteira.
+  limparCache('viagens', 'carteira')
+
+  // O back já devolve a participação atualizada: monta a viagem com ela em vez de buscar tudo de novo
+  // (cada chamada custa 1–2 s). A contagem de vagas é ajustada aqui e se acerta na próxima busca.
+  const confirmada = participacao.status === 'CONFIRMADA'
+  const emEspera = participacao.status === 'EM_ESPERA'
+  const estavaConfirmada = viagem.status === 'confirmed'
+  return {
+    ...viagem,
+    participacaoId: participacao.id,
+    ativa: confirmada || emEspera,
+    emEspera,
+    status: confirmada ? 'confirmed' : 'pending',
+    occupiedSeats: Math.max(viagem.occupiedSeats + Number(confirmada) - Number(estavaConfirmada), 0),
   }
-  return obterViagem(viagem.id)
 }

@@ -1,4 +1,4 @@
-import { api } from './api'
+import { api, emCache, limparCache } from './api'
 
 export type PreferenciasNotificacao = {
   ativadas: boolean
@@ -26,7 +26,7 @@ export type Preferencias = { rotaIds: string[]; cidadeIds: string[]; turnos: Tur
 
 export const getOpcoesPreferencias = () => api<OpcoesPreferencias>('/preferencias/opcoes')
 
-export const getPreferencias = () => api<Preferencias>('/preferencias/me')
+export const getPreferencias = () => emCache('preferencias', () => api<Preferencias>('/preferencias/me'))
 
 export const atualizarPreferencias = (dados: Partial<Omit<Preferencias, 'rotas'>>) =>
-  api<Preferencias>('/preferencias/me', { method: 'PATCH', body: dados })
+  api<Preferencias>('/preferencias/me', { method: 'PATCH', body: dados }).finally(() => limparCache('preferencias'))
