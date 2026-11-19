@@ -1,4 +1,4 @@
-import { api } from './api'
+import { api, emCache } from './api'
 
 export type Carteira = { id: string; saldo: string; limiteCredito: string }
 
@@ -44,7 +44,7 @@ export const formatarData = (iso: string) =>
 export const formatarHora = (iso: string) =>
   new Date(iso).toLocaleTimeString('pt-BR', { timeZone, hour: '2-digit', minute: '2-digit' })
 
-export const getCarteira = () => api<Carteira>('/carteira')
+export const getCarteira = () => emCache('carteira', () => api<Carteira>('/carteira'))
 
 export const listarRecargas = async () =>
   (await api<{ dados: Recarga[] }>('/carteira/recargas?ordem=desc&limite=20')).dados

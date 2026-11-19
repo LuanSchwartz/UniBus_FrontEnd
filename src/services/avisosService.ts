@@ -1,6 +1,6 @@
 import type { NoticesCardProps } from '@/components/noticesCard/NoticesCard'
 
-import { api } from './api'
+import { api, emCache } from './api'
 
 type AvisoApi = {
   id: string
@@ -20,7 +20,9 @@ export type Aviso = NoticesCardProps & {
 const timeZone = 'America/Sao_Paulo'
 
 // shortcut: traz só os 100 mais recentes, paginar quando a tela precisar de histórico.
-export const listarAvisos = async (limite = 100): Promise<Aviso[]> => {
+export const listarAvisos = (limite = 100) => emCache(`avisos:${limite}`, () => buscarAvisos(limite))
+
+const buscarAvisos = async (limite: number): Promise<Aviso[]> => {
   const { dados } = await api<{ dados: AvisoApi[] }>(`/avisos?limite=${limite}`)
 
   return dados.map(aviso => ({

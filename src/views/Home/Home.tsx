@@ -11,7 +11,7 @@ import iconCancel from '../../../icons/iconcancel.svg'
 import MyTripsCard, { Parada } from '@/components/myTripsCard/MyTripsCard'
 import NoticesCard from '@/components/noticesCard/NoticesCard'
 import { sentidoVisual } from '@/components/sentidoTag/SentidoTag'
-import { getUsuario } from '@/services/api'
+import { type Usuario, getUsuario, ultimoValor } from '@/services/api'
 import { type Aviso, listarAvisos } from '@/services/avisosService'
 import { type Preferencias, type Turno, getPreferencias } from '@/services/preferenciasService'
 import {
@@ -56,11 +56,26 @@ const Home = () => {
   const [avisos, setAvisos] = useState<Aviso[]>([])
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
+  // Enquanto mostra o que ficou salvo da última vez, a presença fica travada até chegar o dado novo.
+  const [atualizando, setAtualizando] = useState(true)
   const hoje = diaLocal(new Date())
 
   const router = useRouter()
 
   useEffect(() => {
+    // Mostra na hora o que o app viu da última vez (fica no aparelho). Lido depois da hidratação
+    // para não divergir do HTML gerado no servidor, que não tem acesso ao aparelho.
+    void Promise.resolve().then(() => {
+      const usuario = ultimoValor<Usuario>('usuario')
+      const salvas = ultimoValor<Viagem[]>('viagens')
+      const preferenciasSalvas = ultimoValor<Preferencias>('preferencias')
+      const avisosSalvos = ultimoValor<Aviso[]>('avisos:3')
+      if (usuario) setNome(atual => atual || usuario.nome.split(' ')[0])
+      if (salvas) setViagens(atual => atual ?? salvas.filter(viagem => viagem.proxima))
+      if (preferenciasSalvas) setPreferencias(atual => atual ?? preferenciasSalvas)
+      if (avisosSalvos) setAvisos(atual => (atual.length ? atual : avisosSalvos))
+    })
+
     const falhar = (error: Error) => setErro(error.message)
     getUsuario()
       .then(usuario => setNome(usuario.nome.split(' ')[0]))
@@ -68,6 +83,7 @@ const Home = () => {
     listarViagens()
       .then(lista => setViagens(lista.filter(viagem => viagem.proxima)))
       .catch(falhar)
+      .finally(() => setAtualizando(false))
     // Sem preferências (ou se falhar), a Home mostra todas as viagens.
     getPreferencias().then(setPreferencias).catch(() => undefined)
     listarAvisos(3).then(setAvisos).catch(falhar)
@@ -171,7 +187,7 @@ const Home = () => {
       >
         <Flex justifyContent='space-between' alignItems='center' p='1.6rem 2rem 0'>
           <Text color='blueSlate' fontSize='1.3rem' fontWeight='bold'>
-            Próxima viagem
+            Próxima viagem{proxima && atualizando ? ' · atualizando...' : ''}
           </Text>
           {proxima && (
             <Text color='prussianBlue' fontSize='1.3rem' fontWeight='bold'>
@@ -285,7 +301,7 @@ const Home = () => {
 
             <Button
               onClick={handleAttendance}
-              disabled={enviando || Boolean(proxima.bloqueio)}
+              disabled={enviando || atualizando || Boolean(proxima.bloqueio)}
               size='auto'
               bg={proxima.bloqueio ? 'grey300' : isConfirmed ? 'systemDanger' : 'royalAzure'}
               minHeight='5.2rem'
@@ -300,7 +316,10 @@ const Home = () => {
               {!proxima.bloqueio && (
                 <Image src={isConfirmed ? iconCancel : iconConfirmed} alt='' width={22} height={22} />
               )}
-              {proxima.bloqueio ?? (isConfirmed ? 'Cancelar presença' : 'Confirmar presença')}
+              {proxima.bloqueio ??
+                (enviando
+                  ? isConfirmed ? 'Cancelando...' : 'Confirmando...'
+                  : isConfirmed ? 'Cancelar presença' : 'Confirmar presença')}
             </Button>
 
             <button
